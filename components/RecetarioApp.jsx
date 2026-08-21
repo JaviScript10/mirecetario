@@ -12,6 +12,7 @@ import {
   fetchRecipes,
   createRecipe,
   updateRecipe as updateRecipeDb,
+  saveCosting,
   deleteRecipeDb,
   setFavoriteDb,
   uploadRecipeImage,
@@ -3034,7 +3035,6 @@ function AdminPanel() {
 export default function App() {
   const [user, setUser] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
-  const [costs, setCosts] = useState({});
   const [recipes, setRecipes] = useState([]);
   const [recipesLoading, setRecipesLoading] = useState(true);
   const [recipesError, setRecipesError] = useState("");
@@ -3171,8 +3171,9 @@ export default function App() {
     setView("create");
   };
 
-  const updateCost = (recipeId, costData) => {
-    setCosts((c) => ({ ...c, [recipeId]: costData }));
+  const handleSaveCosting = async (recipeId, ingredients, costMargin) => {
+    const updated = await saveCosting(recipeId, ingredients, costMargin);
+    setRecipes((rs) => rs.map((r) => (r.id === recipeId ? updated : r)));
   };
 
   const saveRecipe = async (draft) => {
@@ -3260,7 +3261,7 @@ export default function App() {
       />
     );
   } else if (view === "costos") {
-    content = <CostosView recipes={recipes} costs={costs} updateCost={updateCost} />;
+    content = <CostosView recipes={recipes} onSaveCosting={handleSaveCosting} />;
   } else if (view === "settings") {
     content = (
       <SettingsView
