@@ -356,7 +356,7 @@ const seedRecipes = [
 
 function DifficultyBadge({ level }) {
   const map = {
-    Fácil: { bg: TOKENS.oliveTint, fg: "#586134" },
+    Fácil: { bg: TOKENS.oliveTint, fg: TOKENS.olive },
     Media: { bg: "#F5E7C6", fg: "#8A6B1F" },
     Difícil: { bg: TOKENS.clayTint, fg: TOKENS.clayDark },
   };
@@ -826,7 +826,7 @@ function RecipeDetail({ recipe, onBack, onToggleFavorite, onEdit, onDelete }) {
           </p>
         </div>
 
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <div className="recipe-actions" style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <button
             onClick={() => onToggleFavorite(recipe.id)}
             style={{ ...labeledActionBtn, color: recipe.favorite ? TOKENS.clay : TOKENS.ink }}
@@ -957,7 +957,7 @@ function RecipeDetail({ recipe, onBack, onToggleFavorite, onEdit, onDelete }) {
                   borderRadius: 14,
                   padding: 16,
                   fontSize: 14,
-                  color: "#4E5533",
+                  color: TOKENS.olive,
                   lineHeight: 1.6,
                 }}
               >
@@ -2586,7 +2586,7 @@ function CostoCalculator({ recipe, onSave, onBack }) {
         </div>
 
         <div style={{ background: TOKENS.oliveTint, borderRadius: 16, padding: 20 }}>
-          <h2 style={{ ...sectionHeading, fontSize: 16, marginBottom: 14, color: "#4E5533" }}>Precio de venta sugerido</h2>
+          <h2 style={{ ...sectionHeading, fontSize: 16, marginBottom: 14, color: TOKENS.olive }}>Precio de venta sugerido</h2>
           <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
             {[30, 50, 100].map((m) => (
               <button
@@ -2611,16 +2611,16 @@ function CostoCalculator({ recipe, onSave, onBack }) {
               value={margin}
               onChange={(e) => setMarginState(Number(e.target.value))}
               onBlur={() => persist(ingredients, margin)}
-              style={{ ...inputStyle, width: 64, padding: "6px 8px", fontSize: 12.5, background: "#fffffff0" }}
+              style={{ ...inputStyle, width: 64, padding: "6px 8px", fontSize: 12.5, background: "#fffffff0", color: "#2C241D" }}
             />
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 14 }}>
-            <span style={{ color: "#4E5533" }}>Venta receta completa</span>
-            <span style={{ fontWeight: 700, color: "#3B4028" }}>{money(suggestedTotal)}</span>
+            <span style={{ color: TOKENS.olive }}>Venta receta completa</span>
+            <span style={{ fontWeight: 700, color: TOKENS.ink }}>{money(suggestedTotal)}</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14 }}>
-            <span style={{ color: "#4E5533" }}>Venta por porción</span>
-            <span style={{ fontWeight: 700, color: "#3B4028" }}>{money(suggestedPerServing)}</span>
+            <span style={{ color: TOKENS.olive }}>Venta por porción</span>
+            <span style={{ fontWeight: 700, color: TOKENS.ink }}>{money(suggestedPerServing)}</span>
           </div>
         </div>
       </div>
@@ -2969,7 +2969,7 @@ function AdminUserRow({ userRow, editing, onStartEdit, onCancelEdit, onSave }) {
             padding: "3px 10px",
             borderRadius: 999,
             background: userRow.role === "admin" ? TOKENS.clayTint : TOKENS.oliveTint,
-            color: userRow.role === "admin" ? TOKENS.clayDark : "#4E5533",
+            color: userRow.role === "admin" ? TOKENS.clayDark : TOKENS.olive,
           }}
         >
           {userRow.role === "admin" ? "Administrador" : "Usuario"}
@@ -3366,6 +3366,9 @@ export default function App() {
           .app-main { padding: 18px 16px 90px !important; }
           .detail-grid { grid-template-columns: 1fr !important; gap: 26px !important; }
           .form-4col { grid-template-columns: 1fr 1fr !important; }
+          .recipe-actions { justify-content: flex-end !important; width: 100%; gap: 6px !important; }
+          .recipe-actions button { padding: 5px 9px !important; font-size: 10.5px !important; gap: 4px !important; }
+          .recipe-actions button span { font-size: 12px !important; }
         }
         @media (max-width: 520px) {
           .ingredient-row { grid-template-columns: 60px 76px 1fr 30px !important; }
