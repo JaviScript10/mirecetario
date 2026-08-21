@@ -543,7 +543,7 @@ function RecipeCard({ recipe, onOpen, onToggleFavorite }) {
               padding: "4px 10px",
               fontSize: 12.5,
               fontWeight: 600,
-              color: TOKENS.ink,
+              color: "#2C241D",
               display: "flex",
               alignItems: "center",
               gap: 5,
@@ -783,7 +783,7 @@ function scaleQuantity(qty, baseServings, newServings) {
 function RecipeDetail({ recipe, onBack, onToggleFavorite, onEdit, onDelete }) {
   const [servings, setServings] = useState(recipe.servings);
   const [checked, setChecked] = useState({});
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const cat = CATEGORIES.find((c) => c.id === recipe.category);
 
   useEffect(() => {
@@ -826,55 +826,77 @@ function RecipeDetail({ recipe, onBack, onToggleFavorite, onEdit, onDelete }) {
           </p>
         </div>
 
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <FavoriteButton active={recipe.favorite} onClick={() => onToggleFavorite(recipe.id)} size={19} />
-          <button onClick={() => onEdit(recipe.id)} style={iconActionBtn} aria-label="Editar receta">
-            ✏
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <button
+            onClick={() => onToggleFavorite(recipe.id)}
+            style={{ ...labeledActionBtn, color: recipe.favorite ? TOKENS.clay : TOKENS.ink }}
+          >
+            <span style={{ fontSize: 16 }}>{recipe.favorite ? "♥" : "♡"}</span>
+            Favorito
           </button>
-          <div style={{ position: "relative" }}>
-            <button onClick={() => setMenuOpen((v) => !v)} style={iconActionBtn} aria-label="Más opciones">
-              •••
-            </button>
-            {menuOpen && (
-              <div
-                style={{
-                  position: "absolute",
-                  right: 0,
-                  top: 42,
-                  background: TOKENS.paper,
-                  border: `1px solid ${TOKENS.line}`,
-                  borderRadius: 12,
-                  boxShadow: "0 10px 28px rgba(44,36,29,0.16)",
-                  overflow: "hidden",
-                  zIndex: 20,
-                  minWidth: 160,
-                }}
-              >
-                <button
-                  onClick={() => {
-                    setMenuOpen(false);
-                    onDelete(recipe.id);
-                  }}
-                  style={{
-                    display: "block",
-                    width: "100%",
-                    textAlign: "left",
-                    padding: "11px 14px",
-                    border: "none",
-                    background: "none",
-                    color: TOKENS.clayDark,
-                    fontSize: 14,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                  }}
-                >
-                  🗑 Eliminar receta
-                </button>
-              </div>
-            )}
-          </div>
+          <button onClick={() => onEdit(recipe.id)} style={labeledActionBtn}>
+            <span style={{ fontSize: 15 }}>✏️</span>
+            Editar
+          </button>
+          <button
+            onClick={() => setConfirmDelete(true)}
+            style={{ ...labeledActionBtn, color: TOKENS.clayDark, borderColor: TOKENS.clayTint }}
+          >
+            <span style={{ fontSize: 15 }}>🗑️</span>
+            Eliminar
+          </button>
         </div>
       </div>
+
+      {confirmDelete && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(44,36,29,0.45)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 100,
+            padding: 20,
+          }}
+          onClick={() => setConfirmDelete(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: TOKENS.paper,
+              borderRadius: 18,
+              padding: 26,
+              maxWidth: 340,
+              textAlign: "center",
+              boxShadow: "0 20px 50px rgba(44,36,29,0.25)",
+            }}
+          >
+            <div style={{ fontSize: 34, marginBottom: 10 }}>🗑️</div>
+            <div style={{ fontFamily: "Fraunces, serif", fontSize: 18, fontWeight: 700, color: TOKENS.ink, marginBottom: 8 }}>
+              ¿Eliminar "{recipe.title}"?
+            </div>
+            <div style={{ fontSize: 13.5, color: TOKENS.inkSoft, marginBottom: 20 }}>
+              Esta acción no se puede deshacer.
+            </div>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+              <button onClick={() => setConfirmDelete(false)} style={secondaryBtn}>
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  setConfirmDelete(false);
+                  onDelete(recipe.id);
+                }}
+                style={{ ...primaryBtn, background: TOKENS.clayDark }}
+              >
+                Sí, eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div style={{ display: "flex", gap: 22, marginTop: 18, flexWrap: "wrap" }}>
         <InfoStat icon="⏱" label={`${recipe.prepTime + recipe.cookTime} min`} sub="tiempo total" />
@@ -1056,6 +1078,20 @@ const iconActionBtn = {
   alignItems: "center",
   justifyContent: "center",
   color: TOKENS.ink,
+};
+
+const labeledActionBtn = {
+  display: "flex",
+  alignItems: "center",
+  gap: 7,
+  border: `1px solid ${TOKENS.line}`,
+  background: TOKENS.paper,
+  borderRadius: 12,
+  padding: "9px 15px",
+  fontSize: 13.5,
+  fontWeight: 600,
+  color: TOKENS.ink,
+  cursor: "pointer",
 };
 
 /* ============================================================
@@ -1720,9 +1756,30 @@ function Footer({ compact }) {
         <span>Creado con Tecnología y Pasión</span>
         <span>💻</span>
       </div>
-      <a href="tel:+56934341783" style={{ color: "inherit", textDecoration: "none", fontSize: 11.5 }}>
-        +56 9 3434 1783
-      </a>
+      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        <a href="tel:+56934341783" style={{ color: "inherit", textDecoration: "none", fontSize: 11.5 }}>
+          +56 9 3434 1783
+        </a>
+        <a
+          href="https://wa.me/56934341783"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            color: "#25D366",
+            textDecoration: "none",
+            fontSize: 12,
+            fontWeight: 600,
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2zm5.79 14.11c-.24.68-1.4 1.31-1.94 1.35-.5.05-1.05.07-1.7-.11-.39-.11-.9-.28-1.55-.55-2.72-1.18-4.5-3.92-4.63-4.1-.14-.18-1.11-1.48-1.11-2.82 0-1.35.7-2.01.95-2.28.24-.28.53-.35.71-.35.18 0 .35 0 .5.01.16.01.38-.06.59.45.24.57.81 1.98.88 2.13.07.14.11.31.02.5-.1.19-.14.31-.28.47-.14.16-.29.36-.42.48-.14.13-.28.28-.12.55.16.28.72 1.19 1.55 1.93 1.06.95 1.96 1.24 2.24 1.38.28.14.44.11.61-.07.16-.18.7-.82.89-1.1.19-.28.38-.23.63-.14.26.09 1.63.77 1.91.91.28.14.47.21.53.33.07.12.07.68-.17 1.36z" />
+          </svg>
+          WhatsApp
+        </a>
+      </div>
     </div>
   );
 }
