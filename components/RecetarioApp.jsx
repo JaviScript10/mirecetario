@@ -528,6 +528,272 @@ function scaleQuantity(qty, baseServings, newServings) {
 }
 
 /* ============================================================
+   MODO COCINA (Vista guiada / Karaoke)
+   ============================================================ */
+function CookingModeModal({ recipe, onClose }) {
+  const [currentStep, setCurrentStep] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [seconds, setSeconds] = useState(15);
+  const [checkedIngs, setCheckedIngs] = useState({});
+
+  useEffect(() => {
+    let timer = null;
+    if (isPlaying) {
+      timer = setInterval(() => {
+        setCurrentStep((prev) => {
+          if (prev < recipe.steps.length - 1) {
+            return prev + 1;
+          } else {
+            setIsPlaying(false);
+            return prev;
+          }
+        });
+      }, seconds * 1000);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [isPlaying, seconds, recipe.steps.length]);
+
+  const totalSteps = recipe.steps.length;
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "#12100E",
+        color: "#FDFBF7",
+        zIndex: 200,
+        display: "flex",
+        flexDirection: "column",
+        padding: "20px 24px",
+        overflowY: "auto",
+        animation: "fadeIn 0.2s ease",
+      }}
+    >
+      {/* Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 24 }}>👨‍🍳</span>
+          <div>
+            <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: 1, color: TOKENS.clay }}>
+              Modo Cocina
+            </div>
+            <div style={{ fontFamily: "Fraunces, serif", fontSize: 18, fontWeight: 700 }}>
+              {recipe.title}
+            </div>
+          </div>
+        </div>
+        <button
+          onClick={onClose}
+          style={{
+            background: "rgba(255,255,255,0.12)",
+            border: "none",
+            color: "#fff",
+            borderRadius: 999,
+            padding: "8px 16px",
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+        >
+          ✕ Salir
+        </button>
+      </div>
+
+      {/* Progress */}
+      <div style={{ height: 6, background: "rgba(255,255,255,0.1)", borderRadius: 999, marginBottom: 24, overflow: "hidden" }}>
+        <div
+          style={{
+            height: "100%",
+            background: TOKENS.clay,
+            width: `${((currentStep + 1) / totalSteps) * 100}%`,
+            transition: "width 0.3s ease",
+          }}
+        />
+      </div>
+
+      {/* Main step card + Checklist */}
+      <div
+        style={{
+          flex: 1,
+          display: "grid",
+          gridTemplateColumns: "1fr minmax(240px, 320px)",
+          gap: 28,
+          alignItems: "center",
+        }}
+        className="detail-grid"
+      >
+        <div
+          style={{
+            background: "rgba(255,255,255,0.05)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: 24,
+            padding: "36px 30px",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            minHeight: 280,
+          }}
+        >
+          <div style={{ fontSize: 14, fontWeight: 700, color: TOKENS.clay, marginBottom: 12 }}>
+            PASO {currentStep + 1} DE {totalSteps}
+          </div>
+          <div
+            style={{
+              fontFamily: "Fraunces, serif",
+              fontSize: "clamp(20px, 4vw, 32px)",
+              lineHeight: 1.4,
+              color: "#FFF",
+            }}
+          >
+            {recipe.steps[currentStep] || "Sin instrucción"}
+          </div>
+        </div>
+
+        <div
+          style={{
+            background: "rgba(255,255,255,0.03)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            borderRadius: 20,
+            padding: 20,
+            maxHeight: 380,
+            overflowY: "auto",
+          }}
+        >
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12, color: TOKENS.gold }}>
+            📝 Checklist Ingredientes
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {recipe.ingredients.map((ing) => {
+              const isChecked = !!checkedIngs[ing.id];
+              return (
+                <label
+                  key={ing.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    fontSize: 13.5,
+                    cursor: "pointer",
+                    opacity: isChecked ? 0.4 : 1,
+                    textDecoration: isChecked ? "line-through" : "none",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={() => setCheckedIngs((prev) => ({ ...prev, [ing.id]: !prev[ing.id] }))}
+                  />
+                  <span>
+                    <strong>{ing.quantity} {ing.unit}</strong> {ing.name}
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Controls */}
+      <div
+        style={{
+          marginTop: 24,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 16,
+          background: "rgba(255,255,255,0.05)",
+          padding: "16px 24px",
+          borderRadius: 20,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <button
+            onClick={() => setIsPlaying(!isPlaying)}
+            style={{
+              background: isPlaying ? "#E05252" : TOKENS.olive,
+              color: "#fff",
+              border: "none",
+              borderRadius: 999,
+              padding: "10px 20px",
+              fontSize: 14,
+              fontWeight: 700,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            {isPlaying ? "⏸ Pausar auto-avance" : "▶️ Auto-avance (Karaoke)"}
+          </button>
+          
+          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", display: "flex", alignItems: "center", gap: 6 }}>
+            <span>Avanzar c/</span>
+            <select
+              value={seconds}
+              onChange={(e) => setSeconds(Number(e.target.value))}
+              style={{
+                background: "rgba(255,255,255,0.1)",
+                color: "#fff",
+                border: "none",
+                borderRadius: 8,
+                padding: "4px 8px",
+                fontSize: 12,
+              }}
+            >
+              <option value={10} style={{ color: "#000" }}>10 seg</option>
+              <option value={15} style={{ color: "#000" }}>15 seg</option>
+              <option value={20} style={{ color: "#000" }}>20 seg</option>
+              <option value={30} style={{ color: "#000" }}>30 seg</option>
+            </select>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 12 }}>
+          <button
+            disabled={currentStep === 0}
+            onClick={() => setCurrentStep((prev) => Math.max(0, prev - 1))}
+            style={{
+              background: "rgba(255,255,255,0.12)",
+              color: "#fff",
+              border: "none",
+              borderRadius: 12,
+              padding: "12px 20px",
+              fontSize: 15,
+              fontWeight: 600,
+              cursor: currentStep === 0 ? "not-allowed" : "pointer",
+              opacity: currentStep === 0 ? 0.3 : 1,
+            }}
+          >
+            ← Anterior
+          </button>
+          <button
+            disabled={currentStep === totalSteps - 1}
+            onClick={() => setCurrentStep((prev) => Math.min(totalSteps - 1, prev + 1))}
+            style={{
+              background: TOKENS.clay,
+              color: "#fff",
+              border: "none",
+              borderRadius: 12,
+              padding: "12px 24px",
+              fontSize: 15,
+              fontWeight: 700,
+              cursor: currentStep === totalSteps - 1 ? "not-allowed" : "pointer",
+              opacity: currentStep === totalSteps - 1 ? 0.3 : 1,
+            }}
+          >
+            Siguiente →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
    RECIPE DETAIL
    ============================================================ */
 
@@ -535,6 +801,7 @@ function RecipeDetail({ recipe, onBack, onToggleFavorite, onEdit, onDelete, onDu
   const [servings, setServings] = useState(recipe.servings);
   const [checked, setChecked] = useState({});
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [showCookingMode, setShowCookingMode] = useState(false);
   const cat = CATEGORIES.find((c) => c.id === recipe.category);
 
   useEffect(() => {
@@ -578,6 +845,13 @@ function RecipeDetail({ recipe, onBack, onToggleFavorite, onEdit, onDelete, onDu
         </div>
 
         <div className="recipe-actions" style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <button 
+            onClick={() => setShowCookingMode(true)} 
+            style={{ ...labeledActionBtn, background: TOKENS.clay, color: "#fff", border: "none" }}
+          >
+            <span style={{ fontSize: 15 }}>🍳</span>
+            Modo Cocina
+          </button>
           <button
             onClick={() => onToggleFavorite(recipe.id)}
             style={{ ...labeledActionBtn, color: recipe.favorite ? TOKENS.clay : TOKENS.ink }}
@@ -773,6 +1047,10 @@ function RecipeDetail({ recipe, onBack, onToggleFavorite, onEdit, onDelete, onDu
           </div>
         </div>
       </div>
+
+      {showCookingMode && (
+        <CookingModeModal recipe={recipe} onClose={() => setShowCookingMode(false)} />
+      )}
     </div>
   );
 }
