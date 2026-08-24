@@ -2915,7 +2915,7 @@ function LoginScreen({ onLogin }) {
   );
 }
 
-function AdminUserRow({ userRow, editing, onStartEdit, onCancelEdit, onSave, onDelete }) {
+function AdminUserRow({ userRow, editing, onStartEdit, onCancelEdit, onSave, onDelete, onChangePassword }) {
   const [draftName, setDraftName] = useState(userRow.name);
 
   useEffect(() => {
@@ -2973,11 +2973,16 @@ function AdminUserRow({ userRow, editing, onStartEdit, onCancelEdit, onSave, onD
           {userRow.role === "admin" ? "Administrador" : "Usuario"}
         </span>
         {!editing && (
-          <button onClick={onStartEdit} aria-label="Editar nombre" style={{ border: "none", background: "none", cursor: "pointer", fontSize: 13.5, color: TOKENS.inkFaint }}>
-            ✏️
-          </button>
+          <>
+            <button onClick={onStartEdit} title="Editar nombre" style={{ border: "none", background: "none", cursor: "pointer", fontSize: 13.5 }}>
+              ✏️
+            </button>
+            <button onClick={onChangePassword} title="Cambiar contraseña" style={{ border: "none", background: "none", cursor: "pointer", fontSize: 13.5 }}>
+              🔑
+            </button>
+          </>
         )}
-        <button onClick={onDelete} aria-label="Eliminar usuario" style={{ border: "none", background: "none", cursor: "pointer", fontSize: 13.5, color: TOKENS.clayDark }}>
+        <button onClick={onDelete} title="Eliminar usuario" style={{ border: "none", background: "none", cursor: "pointer", fontSize: 13.5, color: TOKENS.clayDark }}>
           🗑️
         </button>
       </div>
@@ -2992,6 +2997,11 @@ function AdminPanel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [editingUserId, setEditingUserId] = useState(null);
+
+  // Modal para cambiar contraseña
+  const [passUser, setPassUser] = useState(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [passMsg, setPassMsg] = useState("");
 
   // Crear usuario
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -3018,7 +3028,6 @@ function AdminPanel() {
     loadData();
   }, []);
 
-  // Filtrado seguro sin dependencias de variables externas
   useEffect(() => {
     if (loading) return;
     let cancelled = false;
@@ -3065,6 +3074,27 @@ function AdminPanel() {
       setUsers((us) => us.filter((u) => u.id !== userId));
     } catch (err) {
       setError("No se pudo eliminar el usuario: " + err.message);
+    }
+  };
+
+  const handleUpdatePassword = async (e) => {
+    e.preventDefault();
+    if (!newPassword || newPassword.length < 6) {
+      setPassMsg("La contraseña debe tener al menos 6 caracteres.");
+      return;
+    }
+    try {
+      // Enviar solicitud de reseteo o actualizar sesión
+      const { error: passErr } = await supabase.auth.updateUser({ password: newPassword });
+      if (passErr) throw passErr;
+      setPassMsg("✅ Contraseña actualizada con éxito");
+      setTimeout(() => {
+        setPassUser(null);
+        setNewPassword("");
+        setPassMsg("");
+      }, 1500);
+    } catch (err) {
+      setPassMsg("❌ Error: " + err.message);
     }
   };
 
@@ -3121,67 +3151,46 @@ function AdminPanel() {
       </div>
 
       {createMsg.text && (
-        <div
-          style={{
-            background: createMsg.isError ? TOKENS.clayTint : TOKENS.oliveTint,
-            color: createMsg.isError ? TOKENS.clayDark : TOKENS.olive,
-            borderRadius: 12,
-            padding: "11px 16px",
-            fontSize: 13.5,
-            fontWeight: 600,
-            marginBottom: 20,
-          }}
-        >
+        <div style={{ background: createMsg.isError ? TOKENS.clayTint : TOKENS.oliveTint, color: createMsg.isError ? TOKENS.clayDark : TOKENS.olive, borderRadius: 12, padding: "11px 16px", fontSize: 13.5, fontWeight: 600, marginBottom: 20 }}>
           {createMsg.text}
         </div>
       )}
 
+      {/* MODAL / FORMULARIO PARA CAMBIAR CONTRASEÑA */}
+      {passUser && (
+        <form onSubmit={handleUpdatePassword} style={{ background: TOKENS.paper, border: `1px solid ${TOKENS.line}`, borderRadius: 18, padding: 22, marginBottom: 24, display: "grid", gap: 12 }}>
+          <h3 style={{ ...sectionHeading, fontSize: 16, margin: 0 }}>Cambiar contraseña para: {passUser.name}</h3>
+          <div>
+            <FieldLabel>Nueva Contraseña</FieldLabel>
+            <input type="password" style={inputStyle} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="••••••••" required />
+          </div>
+          {passMsg && <div style={{ fontSize: 13, fontWeight: 600 }}>{passMsg}</div>}
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+            <button type="button" onClick={() => setPassUser(null)} style={secondaryBtn}>
+              Cancelar
+            </button>
+            <button type="submit" style={primaryBtn}>
+              Actualizar Clave
+            </button>
+          </div>
+        </form>
+      )}
+
       {showCreateForm && (
-        <form
-          onSubmit={handleCreateUser}
-          style={{
-            background: TOKENS.paper,
-            border: `1px solid ${TOKENS.line}`,
-            borderRadius: 18,
-            padding: 22,
-            marginBottom: 28,
-            display: "grid",
-            gap: 14,
-          }}
-        >
+        <form onSubmit={handleCreateUser} style={{ background: TOKENS.paper, border: `1px solid ${TOKENS.line}`, borderRadius: 18, padding: 22, marginBottom: 28, display: "grid", gap: 14 }}>
           <h3 style={{ ...sectionHeading, fontSize: 16 }}>Nuevo usuario</h3>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
             <div>
               <FieldLabel>Nombre</FieldLabel>
-              <input
-                style={inputStyle}
-                value={newUserName}
-                onChange={(e) => setNewUserName(e.target.value)}
-                placeholder="Ej: Camilo"
-                required
-              />
+              <input style={inputStyle} value={newUserName} onChange={(e) => setNewUserName(e.target.value)} placeholder="Ej: Camilo" required />
             </div>
             <div>
               <FieldLabel>Correo electrónico</FieldLabel>
-              <input
-                type="email"
-                style={inputStyle}
-                value={newUserEmail}
-                onChange={(e) => setNewUserEmail(e.target.value)}
-                placeholder="usuario@ejemplo.com"
-                required
-              />
+              <input type="email" style={inputStyle} value={newUserEmail} onChange={(e) => setNewUserEmail(e.target.value)} placeholder="usuario@ejemplo.com" required />
             </div>
             <div>
               <FieldLabel>Contraseña</FieldLabel>
-              <input
-                type="password"
-                style={inputStyle}
-                value={newUserPassword}
-                onChange={(e) => setNewUserPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-              />
+              <input type="password" style={inputStyle} value={newUserPassword} onChange={(e) => setNewUserPassword(e.target.value)} placeholder="••••••••" required />
             </div>
             <div>
               <FieldLabel>Rol</FieldLabel>
@@ -3192,11 +3201,7 @@ function AdminPanel() {
             </div>
           </div>
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 4 }}>
-            <button
-              type="submit"
-              disabled={creating}
-              style={{ ...primaryBtn, cursor: creating ? "wait" : "pointer", opacity: creating ? 0.7 : 1 }}
-            >
+            <button type="submit" disabled={creating} style={{ ...primaryBtn, cursor: creating ? "wait" : "pointer", opacity: creating ? 0.7 : 1 }}>
               {creating ? "Guardando..." : "Guardar usuario"}
             </button>
           </div>
@@ -3219,6 +3224,7 @@ function AdminPanel() {
                 onCancelEdit={() => setEditingUserId(null)}
                 onSave={(name) => saveUserName(u.id, name)}
                 onDelete={() => handleDeleteUser(u.id, u.name)}
+                onChangePassword={() => setPassUser(u)}
               />
             ))}
           </div>
@@ -3228,15 +3234,7 @@ function AdminPanel() {
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ fontSize: 12.5, color: TOKENS.inkSoft }}>Filtrar por:</span>
               <select
-                style={{
-                  border: `1px solid ${TOKENS.line}`,
-                  background: TOKENS.paper,
-                  borderRadius: 10,
-                  padding: "8px 10px",
-                  fontSize: 13.5,
-                  color: TOKENS.ink,
-                  cursor: "pointer",
-                }}
+                style={{ border: `1px solid ${TOKENS.line}`, background: TOKENS.paper, borderRadius: 10, padding: "8px 10px", fontSize: 13.5, color: TOKENS.ink, cursor: "pointer" }}
                 value={selectedUserFilter}
                 onChange={(e) => setSelectedUserFilter(e.target.value)}
               >
@@ -3255,16 +3253,7 @@ function AdminPanel() {
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
               {auditLog.map((entry) => (
-                <div
-                  key={entry.id}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    padding: "10px 4px",
-                    borderBottom: `1px solid ${TOKENS.line}`,
-                    fontSize: 13.5,
-                  }}
-                >
+                <div key={entry.id} style={{ display: "flex", justifyContent: "space-between", padding: "10px 4px", borderBottom: `1px solid ${TOKENS.line}`, fontSize: 13.5 }}>
                   <span style={{ color: TOKENS.ink }}>
                     <strong>{entry.user_name}</strong> {entry.action} <strong>{entry.recipe_title}</strong>
                   </span>
