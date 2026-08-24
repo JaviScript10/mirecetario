@@ -2988,11 +2988,17 @@ function AdminUserRow({ userRow, editing, onStartEdit, onCancelEdit, onSave }) {
 function AdminPanel() {
   const [users, setUsers] = useState([]);
   const [auditLog, setAuditLog] = useState([]);
+  const [selectedUserFilter, setSelectedUserFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [editingUserId, setEditingUserId] = useState(null);
 
-  // Estados para nuevo usuario
+  // Cambio de clave
+  const [passwordModalUser, setPasswordModalUser] = useState(null);
+  const [newPassInput, setNewPassInput] = useState("");
+  const [passMsg, setPassMsg] = useState("");
+
+  // Crear usuario
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newUserEmail, setNewUserEmail] = useState("");
   const [newUserPassword, setNewUserPassword] = useState("");
@@ -3014,24 +3020,17 @@ function AdminPanel() {
   };
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const [u, log] = await Promise.all([fetchAllProfiles(), fetchAuditLog()]);
-        if (!cancelled) {
-          setUsers(u);
-          setAuditLog(log);
-        }
-      } catch (err) {
-        if (!cancelled) setError(err.message);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    loadData();
   }, []);
+
+  // Filtrar logs cuando cambia el selector de usuario
+  useEffect(() => {
+    if (loading) return;
+    const filterId = selectedUserFilter === "all" ? null : selectedUserFilter;
+    fetchAuditLogByUser(filterId)
+      .then(setAuditLog)
+      .catch((err) => setError(err.message));
+  }, [selectedUserFilter]);
 
   const saveUserName = async (userId, newName) => {
     const trimmed = newName.trim();
@@ -3047,39 +3046,43 @@ function AdminPanel() {
     }
   };
 
-const handleCreateUser = async (e) => {
+  const handleDeleteUser = async (userId, userName) => {
+    if (!window.confirm(`¿Eliminar al usuario "${userName}"?`)) return;
+    try {
+      await deleteUserProfile(userId);
+      setUsers((us) => us.filter((u) => u.id !== userId));
+    } catch (err) {
+      setError("No se pudo eliminar el usuario: " + err.message);
+    }
+  };
+
+  const handleCreateUser = async (e) => {
     e.preventDefault();
     if (!newUserEmail || !newUserPassword || !newUserName) return;
     setCreating(true);
     setCreateMsg({ text: "", isError: false });
 
     try {
-      // 1. Crear el usuario en Supabase Auth
+      // Registrar en Supabase indicando la URL de Vercel para evitar el fallo de localhost
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: newUserEmail,
         password: newUserPassword,
         options: {
           data: { name: newUserName },
+          emailRedirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
         },
       });
 
       if (signUpError) throw signUpError;
 
-      // 2. Si el rol elegido fue admin, actualizar la tabla profiles
       if (data.user && newUserRole === "admin") {
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .update({ role: "admin" })
-          .eq("id", data.user.id);
-
-        if (profileError) throw profileError;
+        await supabase.from("profiles").update({ role: "admin" }).eq("id", data.user.id);
       }
 
-      setCreateMsg({ text: "✅ Usuario registrado correctamente", isError: false });
+      setCreateMsg({ text: "✅ Usuario creado con éxito", isError: false });
       setNewUserEmail("");
       setNewUserPassword("");
       setNewUserName("");
-      setNewUserRole("user");
       setShowCreateForm(false);
       await loadData();
     } catch (err) {
@@ -3097,7 +3100,7 @@ const handleCreateUser = async (e) => {
             Panel Admin
           </h1>
           <p style={{ color: TOKENS.inkSoft, fontSize: 14.5, margin: "4px 0 0", maxWidth: 520 }}>
-            Usuarios registrados y movimientos recientes sobre las recetas.
+            Gestión de usuarios y auditoría de movimientos.
           </p>
         </div>
         <button onClick={() => setShowCreateForm(!showCreateForm)} style={primaryBtn}>
@@ -3106,67 +3109,26 @@ const handleCreateUser = async (e) => {
       </div>
 
       {createMsg.text && (
-        <div
-          style={{
-            background: createMsg.isError ? TOKENS.clayTint : TOKENS.oliveTint,
-            color: createMsg.isError ? TOKENS.clayDark : TOKENS.olive,
-            borderRadius: 12,
-            padding: "11px 16px",
-            fontSize: 13.5,
-            fontWeight: 600,
-            marginBottom: 20,
-          }}
-        >
+        <div style={{ background: createMsg.isError ? TOKENS.clayTint : TOKENS.oliveTint, color: createMsg.isError ? TOKENS.clayDark : TOKENS.olive, borderRadius: 12, padding: "11px 16px", fontSize: 13.5, fontWeight: 600, marginBottom: 20 }}>
           {createMsg.text}
         </div>
       )}
 
       {showCreateForm && (
-        <form
-          onSubmit={handleCreateUser}
-          style={{
-            background: TOKENS.paper,
-            border: `1px solid ${TOKENS.line}`,
-            borderRadius: 18,
-            padding: 22,
-            marginBottom: 28,
-            display: "grid",
-            gap: 14,
-          }}
-        >
+        <form onSubmit={handleCreateUser} style={{ background: TOKENS.paper, border: `1px solid ${TOKENS.line}`, borderRadius: 18, padding: 22, marginBottom: 28, display: "grid", gap: 14 }}>
           <h3 style={{ ...sectionHeading, fontSize: 16 }}>Nuevo usuario</h3>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
             <div>
               <FieldLabel>Nombre</FieldLabel>
-              <input
-                style={inputStyle}
-                value={newUserName}
-                onChange={(e) => setNewUserName(e.target.value)}
-                placeholder="Ej: Camilo"
-                required
-              />
+              <input style={inputStyle} value={newUserName} onChange={(e) => setNewUserName(e.target.value)} placeholder="Ej: Camilo" required />
             </div>
             <div>
-              <FieldLabel>Correo electrónico</FieldLabel>
-              <input
-                type="email"
-                style={inputStyle}
-                value={newUserEmail}
-                onChange={(e) => setNewUserEmail(e.target.value)}
-                placeholder="usuario@ejemplo.com"
-                required
-              />
+              <FieldLabel>Correo</FieldLabel>
+              <input type="email" style={inputStyle} value={newUserEmail} onChange={(e) => setNewUserEmail(e.target.value)} placeholder="usuario@ejemplo.com" required />
             </div>
             <div>
               <FieldLabel>Contraseña</FieldLabel>
-              <input
-                type="password"
-                style={inputStyle}
-                value={newUserPassword}
-                onChange={(e) => setNewUserPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-              />
+              <input type="password" style={inputStyle} value={newUserPassword} onChange={(e) => setNewUserPassword(e.target.value)} placeholder="••••••••" required />
             </div>
             <div>
               <FieldLabel>Rol</FieldLabel>
@@ -3176,12 +3138,8 @@ const handleCreateUser = async (e) => {
               </select>
             </div>
           </div>
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 4 }}>
-            <button
-              type="submit"
-              disabled={creating}
-              style={{ ...primaryBtn, cursor: creating ? "wait" : "pointer", opacity: creating ? 0.7 : 1 }}
-            >
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+            <button type="submit" disabled={creating} style={{ ...primaryBtn, cursor: creating ? "wait" : "pointer" }}>
               {creating ? "Guardando..." : "Guardar usuario"}
             </button>
           </div>
@@ -3194,35 +3152,46 @@ const handleCreateUser = async (e) => {
       {!loading && (
         <>
           <h2 style={{ ...sectionHeading, fontSize: 16, marginBottom: 12 }}>Usuarios</h2>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 30 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 34 }}>
             {users.map((u) => (
-              <AdminUserRow
-                key={u.id}
-                userRow={u}
-                editing={editingUserId === u.id}
-                onStartEdit={() => setEditingUserId(u.id)}
-                onCancelEdit={() => setEditingUserId(null)}
-                onSave={(name) => saveUserName(u.id, name)}
-              />
+              <div key={u.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: TOKENS.paper, border: `1px solid ${TOKENS.line}`, borderRadius: 12, padding: "10px 16px", gap: 10, flexWrap: "wrap" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontWeight: 600, color: TOKENS.ink }}>{u.name}</span>
+                  <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: u.role === "admin" ? TOKENS.clayTint : TOKENS.oliveTint, color: u.role === "admin" ? TOKENS.clayDark : TOKENS.olive, fontWeight: 700 }}>
+                    {u.role === "admin" ? "Admin" : "Usuario"}
+                  </span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <button onClick={() => handleDeleteUser(u.id, u.name)} style={{ border: "none", background: "none", cursor: "pointer", fontSize: 14 }} title="Eliminar usuario">
+                    🗑️
+                  </button>
+                </div>
+              </div>
             ))}
           </div>
 
-          <h2 style={{ ...sectionHeading, fontSize: 16, marginBottom: 12 }}>Movimientos recientes</h2>
+          {/* SECCIÓN MOVIMIENTOS RECIENTES FILTRADOS POR USUARIO */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
+            <h2 style={{ ...sectionHeading, fontSize: 16, margin: 0 }}>Movimientos recientes</h2>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 12.5, color: TOKENS.inkSoft }}>Filtrar por:</span>
+              <select style={filterSelect} value={selectedUserFilter} onChange={(e) => setSelectedUserFilter(e.target.value)}>
+                <option value="all">Todos los usuarios</option>
+                {users.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
           {auditLog.length === 0 ? (
-            <div style={{ color: TOKENS.inkFaint, fontSize: 13.5 }}>Todavía no hay movimientos registrados.</div>
+            <div style={{ color: TOKENS.inkFaint, fontSize: 13.5 }}>No hay movimientos registrados para este filtro.</div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
               {auditLog.map((entry) => (
-                <div
-                  key={entry.id}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    padding: "10px 4px",
-                    borderBottom: `1px solid ${TOKENS.line}`,
-                    fontSize: 13.5,
-                  }}
-                >
+                <div key={entry.id} style={{ display: "flex", justifyContent: "space-between", padding: "10px 4px", borderBottom: `1px solid ${TOKENS.line}`, fontSize: 13.5 }}>
                   <span style={{ color: TOKENS.ink }}>
                     <strong>{entry.user_name}</strong> {entry.action} <strong>{entry.recipe_title}</strong>
                   </span>
