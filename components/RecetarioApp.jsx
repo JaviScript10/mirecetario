@@ -528,7 +528,7 @@ function scaleQuantity(qty, baseServings, newServings) {
 }
 
 /* ============================================================
-   MODO COCINA (Vista guiada / Karaoke)
+   MODO COCINA (Vista guiada / Karaoke optimizada para móvil)
    ============================================================ */
 function CookingModeModal({ recipe, onClose }) {
   const [currentStep, setCurrentStep] = useState(0);
@@ -567,20 +567,20 @@ function CookingModeModal({ recipe, onClose }) {
         zIndex: 200,
         display: "flex",
         flexDirection: "column",
-        padding: "20px 24px",
+        padding: "16px 18px",
         overflowY: "auto",
         animation: "fadeIn 0.2s ease",
       }}
     >
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+      {/* 1. Header Superior */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 24 }}>👨‍🍳</span>
+          <span style={{ fontSize: 22 }}>👨‍🍳</span>
           <div>
-            <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: 1, color: TOKENS.clay }}>
+            <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 1, color: TOKENS.clay }}>
               Modo Cocina
             </div>
-            <div style={{ fontFamily: "Fraunces, serif", fontSize: 18, fontWeight: 700 }}>
+            <div style={{ fontFamily: "Fraunces, serif", fontSize: 17, fontWeight: 700 }}>
               {recipe.title}
             </div>
           </div>
@@ -593,7 +593,7 @@ function CookingModeModal({ recipe, onClose }) {
             color: "#fff",
             borderRadius: 999,
             padding: "8px 16px",
-            fontSize: 14,
+            fontSize: 13,
             fontWeight: 600,
             cursor: "pointer",
           }}
@@ -602,8 +602,8 @@ function CookingModeModal({ recipe, onClose }) {
         </button>
       </div>
 
-      {/* Progress */}
-      <div style={{ height: 6, background: "rgba(255,255,255,0.1)", borderRadius: 999, marginBottom: 24, overflow: "hidden" }}>
+      {/* 2. Barra de Progreso del Paso */}
+      <div style={{ height: 6, background: "rgba(255,255,255,0.1)", borderRadius: 999, marginBottom: 16, overflow: "hidden" }}>
         <div
           style={{
             height: "100%",
@@ -614,145 +614,49 @@ function CookingModeModal({ recipe, onClose }) {
         />
       </div>
 
-      {/* Main step card + Checklist */}
+      {/* 3. Tarjeta del Paso Actual (Arriba de todo) */}
       <div
         style={{
-          flex: 1,
-          display: "grid",
-          gridTemplateColumns: "1fr minmax(240px, 320px)",
-          gap: 28,
-          alignItems: "center",
+          background: "rgba(255,255,255,0.06)",
+          border: "1px solid rgba(255,255,255,0.12)",
+          borderRadius: 20,
+          padding: "24px 20px",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          minHeight: 180,
+          marginBottom: 16,
         }}
-        className="detail-grid"
       >
-        <div
-          style={{
-            background: "rgba(255,255,255,0.05)",
-            border: "1px solid rgba(255,255,255,0.1)",
-            borderRadius: 24,
-            padding: "36px 30px",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            minHeight: 280,
-          }}
-        >
-          <div style={{ fontSize: 14, fontWeight: 700, color: TOKENS.clay, marginBottom: 12 }}>
-            PASO {currentStep + 1} DE {totalSteps}
-          </div>
-          <div
-            style={{
-              fontFamily: "Fraunces, serif",
-              fontSize: "clamp(20px, 4vw, 32px)",
-              lineHeight: 1.4,
-              color: "#FFF",
-            }}
-          >
-            {recipe.steps[currentStep] || "Sin instrucción"}
-          </div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: TOKENS.clay, marginBottom: 8 }}>
+          PASO {currentStep + 1} DE {totalSteps}
         </div>
-
         <div
           style={{
-            background: "rgba(255,255,255,0.03)",
-            border: "1px solid rgba(255,255,255,0.08)",
-            borderRadius: 20,
-            padding: 20,
-            maxHeight: 380,
-            overflowY: "auto",
+            fontFamily: "Fraunces, serif",
+            fontSize: "clamp(19px, 4.5vw, 28px)",
+            lineHeight: 1.45,
+            color: "#FFF",
           }}
         >
-          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12, color: TOKENS.gold }}>
-            📝 Checklist Ingredientes
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {recipe.ingredients.map((ing) => {
-              const isChecked = !!checkedIngs[ing.id];
-              return (
-                <label
-                  key={ing.id}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    fontSize: 13.5,
-                    cursor: "pointer",
-                    opacity: isChecked ? 0.4 : 1,
-                    textDecoration: isChecked ? "line-through" : "none",
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={isChecked}
-                    onChange={() => setCheckedIngs((prev) => ({ ...prev, [ing.id]: !prev[ing.id] }))}
-                  />
-                  <span>
-                    <strong>{ing.quantity} {ing.unit}</strong> {ing.name}
-                  </span>
-                </label>
-              );
-            })}
-          </div>
+          {recipe.steps[currentStep] || "Sin instrucción"}
         </div>
       </div>
 
-      {/* Controls */}
+      {/* 4. Controles (Flechas de navegación y Karaoke justo debajo del paso) */}
       <div
         style={{
-          marginTop: 24,
           display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: 16,
+          flexDirection: "column",
+          gap: 12,
           background: "rgba(255,255,255,0.05)",
-          padding: "16px 24px",
-          borderRadius: 20,
+          padding: "14px 16px",
+          borderRadius: 18,
+          marginBottom: 20,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <button
-            onClick={() => setIsPlaying(!isPlaying)}
-            style={{
-              background: isPlaying ? "#E05252" : TOKENS.olive,
-              color: "#fff",
-              border: "none",
-              borderRadius: 999,
-              padding: "10px 20px",
-              fontSize: 14,
-              fontWeight: 700,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-            }}
-          >
-            {isPlaying ? "⏸ Pausar auto-avance" : "▶️ Auto-avance (Karaoke)"}
-          </button>
-          
-          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", display: "flex", alignItems: "center", gap: 6 }}>
-            <span>Avanzar c/</span>
-            <select
-              value={seconds}
-              onChange={(e) => setSeconds(Number(e.target.value))}
-              style={{
-                background: "rgba(255,255,255,0.1)",
-                color: "#fff",
-                border: "none",
-                borderRadius: 8,
-                padding: "4px 8px",
-                fontSize: 12,
-              }}
-            >
-              <option value={10} style={{ color: "#000" }}>10 seg</option>
-              <option value={15} style={{ color: "#000" }}>15 seg</option>
-              <option value={20} style={{ color: "#000" }}>20 seg</option>
-              <option value={30} style={{ color: "#000" }}>30 seg</option>
-            </select>
-          </div>
-        </div>
-
-        <div style={{ display: "flex", gap: 12 }}>
+        {/* Flechas Anterior / Siguiente principales */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <button
             disabled={currentStep === 0}
             onClick={() => setCurrentStep((prev) => Math.max(0, prev - 1))}
@@ -761,7 +665,7 @@ function CookingModeModal({ recipe, onClose }) {
               color: "#fff",
               border: "none",
               borderRadius: 12,
-              padding: "12px 20px",
+              padding: "12px",
               fontSize: 15,
               fontWeight: 600,
               cursor: currentStep === 0 ? "not-allowed" : "pointer",
@@ -778,7 +682,7 @@ function CookingModeModal({ recipe, onClose }) {
               color: "#fff",
               border: "none",
               borderRadius: 12,
-              padding: "12px 24px",
+              padding: "12px",
               fontSize: 15,
               fontWeight: 700,
               cursor: currentStep === totalSteps - 1 ? "not-allowed" : "pointer",
@@ -787,6 +691,93 @@ function CookingModeModal({ recipe, onClose }) {
           >
             Siguiente →
           </button>
+        </div>
+
+        {/* Módulo Karaoke Auto-Avance */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, pt: 4, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+          <button
+            onClick={() => setIsPlaying(!isPlaying)}
+            style={{
+              background: isPlaying ? "#E05252" : TOKENS.olive,
+              color: "#fff",
+              border: "none",
+              borderRadius: 999,
+              padding: "8px 16px",
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            {isPlaying ? "⏸ Pausar" : "▶️ Auto-avance (Karaoke)"}
+          </button>
+          
+          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", display: "flex", alignItems: "center", gap: 6 }}>
+            <span>c/</span>
+            <select
+              value={seconds}
+              onChange={(e) => setSeconds(Number(e.target.value))}
+              style={{
+                background: "rgba(255,255,255,0.12)",
+                color: "#fff",
+                border: "none",
+                borderRadius: 8,
+                padding: "4px 8px",
+                fontSize: 12,
+              }}
+            >
+              <option value={10} style={{ color: "#000" }}>10s</option>
+              <option value={15} style={{ color: "#000" }}>15s</option>
+              <option value={20} style={{ color: "#000" }}>20s</option>
+              <option value={30} style={{ color: "#000" }}>30s</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* 5. Checklist de Ingredientes (Al final) */}
+      <div
+        style={{
+          background: "rgba(255,255,255,0.03)",
+          border: "1px solid rgba(255,255,255,0.08)",
+          borderRadius: 18,
+          padding: 16,
+        }}
+      >
+        <div style={{ fontSize: 13.5, fontWeight: 700, marginBottom: 10, color: TOKENS.gold }}>
+          📝 Checklist de Ingredientes (Toca para tachar lo usado)
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {recipe.ingredients.map((ing) => {
+            const isChecked = !!checkedIngs[ing.id];
+            return (
+              <label
+                key={ing.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  fontSize: 13.5,
+                  cursor: "pointer",
+                  opacity: isChecked ? 0.4 : 1,
+                  textDecoration: isChecked ? "line-through" : "none",
+                  padding: "4px 0",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={isChecked}
+                  onChange={() => setCheckedIngs((prev) => ({ ...prev, [ing.id]: !prev[ing.id] }))}
+                  style={{ width: 16, height: 16 }}
+                />
+                <span>
+                  <strong>{ing.quantity} {ing.unit}</strong> {ing.name}
+                </span>
+              </label>
+            );
+          })}
         </div>
       </div>
     </div>
