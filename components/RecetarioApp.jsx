@@ -3077,22 +3077,37 @@ function AdminPanel() {
     }
   };
 
-  const handleUpdatePassword = async (e) => {
+const handleUpdatePassword = async (e) => {
     e.preventDefault();
     if (!newPassword || newPassword.length < 6) {
-      setPassMsg("La contraseña debe tener al menos 6 caracteres.");
+      setPassMsg("❌ La contraseña debe tener al menos 6 caracteres.");
       return;
     }
+
+    setPassMsg("Actualizando clave...");
+
     try {
-      // Enviar solicitud de reseteo o actualizar sesión
-      const { error: passErr } = await supabase.auth.updateUser({ password: newPassword });
-      if (passErr) throw passErr;
-      setPassMsg("✅ Contraseña actualizada con éxito");
+      const res = await fetch("/api/admin/update-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: passUser.id,
+          newPassword: newPassword,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "No se pudo actualizar la clave");
+      }
+
+      setPassMsg("✅ Contraseña de " + passUser.name + " cambiada con éxito");
       setTimeout(() => {
         setPassUser(null);
         setNewPassword("");
         setPassMsg("");
-      }, 1500);
+      }, 1800);
     } catch (err) {
       setPassMsg("❌ Error: " + err.message);
     }
