@@ -3066,18 +3066,31 @@ function AdminPanel() {
     }
   };
 
+// Eliminar usuario de Auth y de Profiles mediante la API Route
   const handleDeleteUser = async (userId, userName) => {
-    if (!window.confirm(`¿Eliminar al usuario "${userName}"?`)) return;
+    if (!window.confirm(`¿Eliminar definitivamente al usuario "${userName}" y liberar su correo?`)) return;
     try {
-      const { error: delErr } = await supabase.from("profiles").delete().eq("id", userId);
-      if (delErr) throw delErr;
+      const res = await fetch("/api/admin/update-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "delete-user",
+          userId: userId,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al borrar usuario");
+
       setUsers((us) => us.filter((u) => u.id !== userId));
+      await loadData();
     } catch (err) {
       setError("No se pudo eliminar el usuario: " + err.message);
     }
   };
 
-const handleUpdatePassword = async (e) => {
+  // Cambiar contraseña mediante la API Route
+  const handleUpdatePassword = async (e) => {
     e.preventDefault();
     if (!newPassword || newPassword.length < 6) {
       setPassMsg("❌ La contraseña debe tener al menos 6 caracteres.");
@@ -3091,6 +3104,7 @@ const handleUpdatePassword = async (e) => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          action: "update-password",
           userId: passUser.id,
           newPassword: newPassword,
         }),
@@ -3102,12 +3116,12 @@ const handleUpdatePassword = async (e) => {
         throw new Error(data.error || "No se pudo actualizar la clave");
       }
 
-      setPassMsg("✅ Contraseña de " + passUser.name + " cambiada con éxito");
+      setPassMsg("✅ Contraseña actualizada con éxito");
       setTimeout(() => {
         setPassUser(null);
         setNewPassword("");
         setPassMsg("");
-      }, 1800);
+      }, 1500);
     } catch (err) {
       setPassMsg("❌ Error: " + err.message);
     }
