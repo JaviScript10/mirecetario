@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useRef, useEffect } from "react";
+import { supabase } from "../lib/supabaseClient";
 import {
   signIn,
   signOut,
@@ -17,8 +18,7 @@ import {
   setFavoriteDb,
   uploadRecipeImage,
   logMovementDb,
-  fetchAuditLog,
-  createUserByAdmin,  
+  fetchAuditLog,  
 } from "../lib/recipesApi";
 
 /* ============================================================
@@ -3047,13 +3047,34 @@ function AdminPanel() {
     }
   };
 
-  const handleCreateUser = async (e) => {
+const handleCreateUser = async (e) => {
     e.preventDefault();
     if (!newUserEmail || !newUserPassword || !newUserName) return;
     setCreating(true);
     setCreateMsg({ text: "", isError: false });
+
     try {
-      await createUserByAdmin(newUserEmail, newUserPassword, newUserName, newUserRole);
+      // 1. Crear el usuario en Supabase Auth
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: newUserEmail,
+        password: newUserPassword,
+        options: {
+          data: { name: newUserName },
+        },
+      });
+
+      if (signUpError) throw signUpError;
+
+      // 2. Si el rol elegido fue admin, actualizar la tabla profiles
+      if (data.user && newUserRole === "admin") {
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update({ role: "admin" })
+          .eq("id", data.user.id);
+
+        if (profileError) throw profileError;
+      }
+
       setCreateMsg({ text: "✅ Usuario registrado correctamente", isError: false });
       setNewUserEmail("");
       setNewUserPassword("");
