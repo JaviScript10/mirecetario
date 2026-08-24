@@ -18,6 +18,7 @@ import {
   uploadRecipeImage,
   logMovementDb,
   fetchAuditLog,
+  createUserByAdmin,  
 } from "../lib/recipesApi";
 
 /* ============================================================
@@ -2991,6 +2992,27 @@ function AdminPanel() {
   const [error, setError] = useState("");
   const [editingUserId, setEditingUserId] = useState(null);
 
+  // Estados para nuevo usuario
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUserPassword, setNewUserPassword] = useState("");
+  const [newUserName, setNewUserName] = useState("");
+  const [newUserRole, setNewUserRole] = useState("user");
+  const [creating, setCreating] = useState(false);
+  const [createMsg, setCreateMsg] = useState({ text: "", isError: false });
+
+  const loadData = async () => {
+    try {
+      const [u, log] = await Promise.all([fetchAllProfiles(), fetchAuditLog()]);
+      setUsers(u);
+      setAuditLog(log);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -3025,14 +3047,125 @@ function AdminPanel() {
     }
   };
 
+  const handleCreateUser = async (e) => {
+    e.preventDefault();
+    if (!newUserEmail || !newUserPassword || !newUserName) return;
+    setCreating(true);
+    setCreateMsg({ text: "", isError: false });
+    try {
+      await createUserByAdmin(newUserEmail, newUserPassword, newUserName, newUserRole);
+      setCreateMsg({ text: "✅ Usuario registrado correctamente", isError: false });
+      setNewUserEmail("");
+      setNewUserPassword("");
+      setNewUserName("");
+      setNewUserRole("user");
+      setShowCreateForm(false);
+      await loadData();
+    } catch (err) {
+      setCreateMsg({ text: "❌ Error: " + err.message, isError: true });
+    } finally {
+      setCreating(false);
+    }
+  };
+
   return (
     <div style={{ paddingBottom: 40 }}>
-      <h1 style={{ fontFamily: "Fraunces, serif", fontSize: 26, fontWeight: 700, color: TOKENS.ink, margin: "0 0 6px" }}>
-        Panel Admin
-      </h1>
-      <p style={{ color: TOKENS.inkSoft, fontSize: 14.5, margin: "0 0 24px", maxWidth: 520 }}>
-        Usuarios registrados y movimientos recientes sobre las recetas.
-      </p>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, flexWrap: "wrap", gap: 10 }}>
+        <div>
+          <h1 style={{ fontFamily: "Fraunces, serif", fontSize: 26, fontWeight: 700, color: TOKENS.ink, margin: 0 }}>
+            Panel Admin
+          </h1>
+          <p style={{ color: TOKENS.inkSoft, fontSize: 14.5, margin: "4px 0 0", maxWidth: 520 }}>
+            Usuarios registrados y movimientos recientes sobre las recetas.
+          </p>
+        </div>
+        <button onClick={() => setShowCreateForm(!showCreateForm)} style={primaryBtn}>
+          {showCreateForm ? "Cancelar" : "+ Crear usuario"}
+        </button>
+      </div>
+
+      {createMsg.text && (
+        <div
+          style={{
+            background: createMsg.isError ? TOKENS.clayTint : TOKENS.oliveTint,
+            color: createMsg.isError ? TOKENS.clayDark : TOKENS.olive,
+            borderRadius: 12,
+            padding: "11px 16px",
+            fontSize: 13.5,
+            fontWeight: 600,
+            marginBottom: 20,
+          }}
+        >
+          {createMsg.text}
+        </div>
+      )}
+
+      {showCreateForm && (
+        <form
+          onSubmit={handleCreateUser}
+          style={{
+            background: TOKENS.paper,
+            border: `1px solid ${TOKENS.line}`,
+            borderRadius: 18,
+            padding: 22,
+            marginBottom: 28,
+            display: "grid",
+            gap: 14,
+          }}
+        >
+          <h3 style={{ ...sectionHeading, fontSize: 16 }}>Nuevo usuario</h3>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
+            <div>
+              <FieldLabel>Nombre</FieldLabel>
+              <input
+                style={inputStyle}
+                value={newUserName}
+                onChange={(e) => setNewUserName(e.target.value)}
+                placeholder="Ej: Camilo"
+                required
+              />
+            </div>
+            <div>
+              <FieldLabel>Correo electrónico</FieldLabel>
+              <input
+                type="email"
+                style={inputStyle}
+                value={newUserEmail}
+                onChange={(e) => setNewUserEmail(e.target.value)}
+                placeholder="usuario@ejemplo.com"
+                required
+              />
+            </div>
+            <div>
+              <FieldLabel>Contraseña</FieldLabel>
+              <input
+                type="password"
+                style={inputStyle}
+                value={newUserPassword}
+                onChange={(e) => setNewUserPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+              />
+            </div>
+            <div>
+              <FieldLabel>Rol</FieldLabel>
+              <select style={inputStyle} value={newUserRole} onChange={(e) => setNewUserRole(e.target.value)}>
+                <option value="user">Usuario</option>
+                <option value="admin">Administrador</option>
+              </select>
+            </div>
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 4 }}>
+            <button
+              type="submit"
+              disabled={creating}
+              style={{ ...primaryBtn, cursor: creating ? "wait" : "pointer", opacity: creating ? 0.7 : 1 }}
+            >
+              {creating ? "Guardando..." : "Guardar usuario"}
+            </button>
+          </div>
+        </form>
+      )}
 
       {loading && <div style={{ color: TOKENS.inkFaint, fontSize: 13.5 }}>Cargando...</div>}
       {error && <div style={{ color: TOKENS.clayDark, fontSize: 13.5 }}>{error}</div>}
@@ -3102,9 +3235,6 @@ export default function App() {
   const [activeCat, setActiveCat] = useState(null);
   const [toast, setToast] = useState({ show: false, message: "" });
 
-  // Every "screen" in this app is really the same page swapping content —
-  // without this, switching tabs or opening a recipe keeps whatever scroll
-  // position the previous screen was left at.
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [view, selectedId]);
@@ -3115,13 +3245,10 @@ export default function App() {
     showToast._t = window.setTimeout(() => setToast((t) => ({ ...t, show: false })), 2000);
   };
 
-  // Apply the saved appearance (theme/accent/font) as soon as the app mounts,
-  // so it's in effect even on the login screen, before any session check.
   useEffect(() => {
     applyAppearance(loadAppearance());
   }, []);
 
-  // Restore session on load (so a page refresh doesn't log the user out)
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -3144,7 +3271,6 @@ export default function App() {
     };
   }, []);
 
-  // Load recipes once logged in
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
@@ -3164,9 +3290,6 @@ export default function App() {
     };
   }, [user]);
 
-  // Recipes can change from another device (e.g. deleted on PC while this
-  // tab is open on your phone). Re-sync quietly whenever you come back to
-  // this tab/app, instead of only ever loading once at login.
   useEffect(() => {
     if (!user) return;
     const resync = () => {
