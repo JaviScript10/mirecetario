@@ -2993,11 +2993,6 @@ function AdminPanel() {
   const [error, setError] = useState("");
   const [editingUserId, setEditingUserId] = useState(null);
 
-  // Cambio de clave
-  const [passwordModalUser, setPasswordModalUser] = useState(null);
-  const [newPassInput, setNewPassInput] = useState("");
-  const [passMsg, setPassMsg] = useState("");
-
   // Crear usuario
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newUserEmail, setNewUserEmail] = useState("");
@@ -3023,13 +3018,29 @@ function AdminPanel() {
     loadData();
   }, []);
 
-  // Filtrar logs cuando cambia el selector de usuario
+  // Filtrado seguro sin dependencias de variables externas
   useEffect(() => {
     if (loading) return;
-    const filterId = selectedUserFilter === "all" ? null : selectedUserFilter;
-    fetchAuditLogByUser(filterId)
-      .then(setAuditLog)
-      .catch((err) => setError(err.message));
+    let cancelled = false;
+
+    async function filterLogs() {
+      try {
+        let query = supabase.from("audit_log").select("*").order("created_at", { ascending: false });
+        if (selectedUserFilter !== "all") {
+          query = query.eq("user_id", selectedUserFilter);
+        }
+        const { data, error: err } = await query.limit(40);
+        if (err) throw err;
+        if (!cancelled) setAuditLog(data || []);
+      } catch (err) {
+        if (!cancelled) setError("Error al filtrar movimientos: " + err.message);
+      }
+    }
+
+    filterLogs();
+    return () => {
+      cancelled = true;
+    };
   }, [selectedUserFilter]);
 
   const saveUserName = async (userId, newName) => {
@@ -3049,7 +3060,8 @@ function AdminPanel() {
   const handleDeleteUser = async (userId, userName) => {
     if (!window.confirm(`¿Eliminar al usuario "${userName}"?`)) return;
     try {
-      await deleteUserProfile(userId);
+      const { error: delErr } = await supabase.from("profiles").delete().eq("id", userId);
+      if (delErr) throw delErr;
       setUsers((us) => us.filter((u) => u.id !== userId));
     } catch (err) {
       setError("No se pudo eliminar el usuario: " + err.message);
@@ -3063,13 +3075,12 @@ function AdminPanel() {
     setCreateMsg({ text: "", isError: false });
 
     try {
-      // Registrar en Supabase indicando la URL de Vercel para evitar el fallo de localhost
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: newUserEmail,
         password: newUserPassword,
         options: {
           data: { name: newUserName },
-          emailRedirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
+          emailRedirectTo: "https://misrecetasdecocina.vercel.app/",
         },
       });
 
@@ -3079,10 +3090,11 @@ function AdminPanel() {
         await supabase.from("profiles").update({ role: "admin" }).eq("id", data.user.id);
       }
 
-      setCreateMsg({ text: "✅ Usuario creado con éxito", isError: false });
+      setCreateMsg({ text: "✅ Usuario registrado correctamente", isError: false });
       setNewUserEmail("");
       setNewUserPassword("");
       setNewUserName("");
+      setNewUserRole("user");
       setShowCreateForm(false);
       await loadData();
     } catch (err) {
@@ -3109,26 +3121,67 @@ function AdminPanel() {
       </div>
 
       {createMsg.text && (
-        <div style={{ background: createMsg.isError ? TOKENS.clayTint : TOKENS.oliveTint, color: createMsg.isError ? TOKENS.clayDark : TOKENS.olive, borderRadius: 12, padding: "11px 16px", fontSize: 13.5, fontWeight: 600, marginBottom: 20 }}>
+        <div
+          style={{
+            background: createMsg.isError ? TOKENS.clayTint : TOKENS.oliveTint,
+            color: createMsg.isError ? TOKENS.clayDark : TOKENS.olive,
+            borderRadius: 12,
+            padding: "11px 16px",
+            fontSize: 13.5,
+            fontWeight: 600,
+            marginBottom: 20,
+          }}
+        >
           {createMsg.text}
         </div>
       )}
 
       {showCreateForm && (
-        <form onSubmit={handleCreateUser} style={{ background: TOKENS.paper, border: `1px solid ${TOKENS.line}`, borderRadius: 18, padding: 22, marginBottom: 28, display: "grid", gap: 14 }}>
+        <form
+          onSubmit={handleCreateUser}
+          style={{
+            background: TOKENS.paper,
+            border: `1px solid ${TOKENS.line}`,
+            borderRadius: 18,
+            padding: 22,
+            marginBottom: 28,
+            display: "grid",
+            gap: 14,
+          }}
+        >
           <h3 style={{ ...sectionHeading, fontSize: 16 }}>Nuevo usuario</h3>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
             <div>
               <FieldLabel>Nombre</FieldLabel>
-              <input style={inputStyle} value={newUserName} onChange={(e) => setNewUserName(e.target.value)} placeholder="Ej: Camilo" required />
+              <input
+                style={inputStyle}
+                value={newUserName}
+                onChange={(e) => setNewUserName(e.target.value)}
+                placeholder="Ej: Camilo"
+                required
+              />
             </div>
             <div>
-              <FieldLabel>Correo</FieldLabel>
-              <input type="email" style={inputStyle} value={newUserEmail} onChange={(e) => setNewUserEmail(e.target.value)} placeholder="usuario@ejemplo.com" required />
+              <FieldLabel>Correo electrónico</FieldLabel>
+              <input
+                type="email"
+                style={inputStyle}
+                value={newUserEmail}
+                onChange={(e) => setNewUserEmail(e.target.value)}
+                placeholder="usuario@ejemplo.com"
+                required
+              />
             </div>
             <div>
               <FieldLabel>Contraseña</FieldLabel>
-              <input type="password" style={inputStyle} value={newUserPassword} onChange={(e) => setNewUserPassword(e.target.value)} placeholder="••••••••" required />
+              <input
+                type="password"
+                style={inputStyle}
+                value={newUserPassword}
+                onChange={(e) => setNewUserPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+              />
             </div>
             <div>
               <FieldLabel>Rol</FieldLabel>
@@ -3138,8 +3191,12 @@ function AdminPanel() {
               </select>
             </div>
           </div>
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-            <button type="submit" disabled={creating} style={{ ...primaryBtn, cursor: creating ? "wait" : "pointer" }}>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 4 }}>
+            <button
+              type="submit"
+              disabled={creating}
+              style={{ ...primaryBtn, cursor: creating ? "wait" : "pointer", opacity: creating ? 0.7 : 1 }}
+            >
               {creating ? "Guardando..." : "Guardar usuario"}
             </button>
           </div>
@@ -3147,35 +3204,42 @@ function AdminPanel() {
       )}
 
       {loading && <div style={{ color: TOKENS.inkFaint, fontSize: 13.5 }}>Cargando...</div>}
-      {error && <div style={{ color: TOKENS.clayDark, fontSize: 13.5 }}>{error}</div>}
+      {error && <div style={{ color: TOKENS.clayDark, fontSize: 13.5, marginBottom: 16 }}>{error}</div>}
 
       {!loading && (
         <>
           <h2 style={{ ...sectionHeading, fontSize: 16, marginBottom: 12 }}>Usuarios</h2>
           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 34 }}>
             {users.map((u) => (
-              <div key={u.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: TOKENS.paper, border: `1px solid ${TOKENS.line}`, borderRadius: 12, padding: "10px 16px", gap: 10, flexWrap: "wrap" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ fontWeight: 600, color: TOKENS.ink }}>{u.name}</span>
-                  <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: u.role === "admin" ? TOKENS.clayTint : TOKENS.oliveTint, color: u.role === "admin" ? TOKENS.clayDark : TOKENS.olive, fontWeight: 700 }}>
-                    {u.role === "admin" ? "Admin" : "Usuario"}
-                  </span>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <button onClick={() => handleDeleteUser(u.id, u.name)} style={{ border: "none", background: "none", cursor: "pointer", fontSize: 14 }} title="Eliminar usuario">
-                    🗑️
-                  </button>
-                </div>
-              </div>
+              <AdminUserRow
+                key={u.id}
+                userRow={u}
+                editing={editingUserId === u.id}
+                onStartEdit={() => setEditingUserId(u.id)}
+                onCancelEdit={() => setEditingUserId(null)}
+                onSave={(name) => saveUserName(u.id, name)}
+                onDelete={() => handleDeleteUser(u.id, u.name)}
+              />
             ))}
           </div>
 
-          {/* SECCIÓN MOVIMIENTOS RECIENTES FILTRADOS POR USUARIO */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
             <h2 style={{ ...sectionHeading, fontSize: 16, margin: 0 }}>Movimientos recientes</h2>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ fontSize: 12.5, color: TOKENS.inkSoft }}>Filtrar por:</span>
-              <select style={filterSelect} value={selectedUserFilter} onChange={(e) => setSelectedUserFilter(e.target.value)}>
+              <select
+                style={{
+                  border: `1px solid ${TOKENS.line}`,
+                  background: TOKENS.paper,
+                  borderRadius: 10,
+                  padding: "8px 10px",
+                  fontSize: 13.5,
+                  color: TOKENS.ink,
+                  cursor: "pointer",
+                }}
+                value={selectedUserFilter}
+                onChange={(e) => setSelectedUserFilter(e.target.value)}
+              >
                 <option value="all">Todos los usuarios</option>
                 {users.map((u) => (
                   <option key={u.id} value={u.id}>
@@ -3191,7 +3255,16 @@ function AdminPanel() {
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
               {auditLog.map((entry) => (
-                <div key={entry.id} style={{ display: "flex", justifyContent: "space-between", padding: "10px 4px", borderBottom: `1px solid ${TOKENS.line}`, fontSize: 13.5 }}>
+                <div
+                  key={entry.id}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    padding: "10px 4px",
+                    borderBottom: `1px solid ${TOKENS.line}`,
+                    fontSize: 13.5,
+                  }}
+                >
                   <span style={{ color: TOKENS.ink }}>
                     <strong>{entry.user_name}</strong> {entry.action} <strong>{entry.recipe_title}</strong>
                   </span>
