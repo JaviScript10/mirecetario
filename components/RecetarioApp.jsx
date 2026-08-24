@@ -1758,9 +1758,6 @@ function Footer({ compact }) {
         <span>💻</span>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        <a href="tel:+56934341783" style={{ color: "inherit", textDecoration: "none", fontSize: 11.5 }}>
-          +56 9 3434 1783
-        </a>
         <a
           href="https://wa.me/56934341783"
           target="_blank"
@@ -1771,14 +1768,14 @@ function Footer({ compact }) {
             gap: 6,
             color: "#25D366",
             textDecoration: "none",
-            fontSize: 12,
+            fontSize: 12.5,
             fontWeight: 600,
           }}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2zm5.79 14.11c-.24.68-1.4 1.31-1.94 1.35-.5.05-1.05.07-1.7-.11-.39-.11-.9-.28-1.55-.55-2.72-1.18-4.5-3.92-4.63-4.1-.14-.18-1.11-1.48-1.11-2.82 0-1.35.7-2.01.95-2.28.24-.28.53-.35.71-.35.18 0 .35 0 .5.01.16.01.38-.06.59.45.24.57.81 1.98.88 2.13.07.14.11.31.02.5-.1.19-.14.31-.28.47-.14.16-.29.36-.42.48-.14.13-.28.28-.12.55.16.28.72 1.19 1.55 1.93 1.06.95 1.96 1.24 2.24 1.38.28.14.44.11.61-.07.16-.18.7-.82.89-1.1.19-.28.38-.23.63-.14.26.09 1.63.77 1.91.91.28.14.47.21.53.33.07.12.07.68-.17 1.36z" />
           </svg>
-          WhatsApp
+          Contacto por WhatsApp
         </a>
       </div>
     </div>
@@ -2918,7 +2915,7 @@ function LoginScreen({ onLogin }) {
   );
 }
 
-function AdminUserRow({ userRow, editing, onStartEdit, onCancelEdit, onSave }) {
+function AdminUserRow({ userRow, editing, onStartEdit, onCancelEdit, onSave, onDelete }) {
   const [draftName, setDraftName] = useState(userRow.name);
 
   useEffect(() => {
@@ -2977,9 +2974,12 @@ function AdminUserRow({ userRow, editing, onStartEdit, onCancelEdit, onSave }) {
         </span>
         {!editing && (
           <button onClick={onStartEdit} aria-label="Editar nombre" style={{ border: "none", background: "none", cursor: "pointer", fontSize: 13.5, color: TOKENS.inkFaint }}>
-            ✏
+            ✏️
           </button>
         )}
+        <button onClick={onDelete} aria-label="Eliminar usuario" style={{ border: "none", background: "none", cursor: "pointer", fontSize: 13.5, color: TOKENS.clayDark }}>
+          🗑️
+        </button>
       </div>
     </div>
   );
