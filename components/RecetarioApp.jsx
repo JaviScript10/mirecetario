@@ -15,6 +15,7 @@ import {
   updateRecipe as updateRecipeDb,
   saveCosting,
   deleteRecipeDb,
+  duplicateRecipe,
   setFavoriteDb,
   uploadRecipeImage,
   logMovementDb,
@@ -31,9 +32,6 @@ import {
 const FONT_IMPORT_URL =
   "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap";
 
-// Colors reference CSS variables (defined in app/layout.js and overridden
-// per data-theme/data-accent attribute) so appearance settings can change
-// them instantly for the whole app without re-rendering every component.
 const TOKENS = {
   cream: "var(--color-cream)",
   paper: "var(--color-paper)",
@@ -91,265 +89,17 @@ const COOKING_METHODS = [
 ];
 
 const IMG = {
-  chocolate:
-    "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=800&q=80",
-  cesar:
-    "https://images.unsplash.com/photo-1550304943-4f24f54ddde9?w=800&q=80",
-  masamadre:
-    "https://images.unsplash.com/photo-1585478259715-4d3a5a2f5f3e?w=800&q=80",
-  zapallo:
-    "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=800&q=80",
-  bolonesa:
-    "https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=800&q=80",
-  brownies:
-    "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=800&q=80",
-  limonada:
-    "https://images.unsplash.com/photo-1621263764928-df1444c5e859?w=800&q=80",
-  panqueques:
-    "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=800&q=80",
+  chocolate: "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=800&q=80",
+  cesar: "https://images.unsplash.com/photo-1550304943-4f24f54ddde9?w=800&q=80",
+  masamadre: "https://images.unsplash.com/photo-1585478259715-4d3a5a2f5f3e?w=800&q=80",
+  zapallo: "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=800&q=80",
+  bolonesa: "https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=800&q=80",
+  brownies: "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=800&q=80",
+  limonada: "https://images.unsplash.com/photo-1621263764928-df1444c5e859?w=800&q=80",
+  panqueques: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=800&q=80",
 };
 
 const uid = () => Math.random().toString(36).slice(2, 10);
-
-const seedRecipes = [
-  {
-    id: "r1",
-    title: "Pastel de chocolate",
-    description: "Un pastel suave y húmedo de chocolate, perfecto para cualquier ocasión.",
-    image: IMG.chocolate,
-    category: "pasteles",
-    subcategory: "Tortas",
-    prepTime: 20,
-    cookTime: 40,
-    difficulty: "Fácil",
-    servings: 8,
-    favorite: true,
-    tags: ["chocolate", "horno", "cumpleaños"],
-    ingredients: [
-      { id: uid(), quantity: 250, unit: "g", name: "Harina" },
-      { id: uid(), quantity: 200, unit: "ml", name: "Leche" },
-      { id: uid(), quantity: 2, unit: "", name: "Huevos" },
-      { id: uid(), quantity: 100, unit: "g", name: "Azúcar" },
-      { id: uid(), quantity: 80, unit: "g", name: "Cacao en polvo" },
-      { id: uid(), quantity: 1, unit: "", name: "Cucharadita de polvos de hornear" },
-    ],
-    steps: [
-      "Precalienta el horno a 180 °C.",
-      "Mezcla la harina, el azúcar y el cacao en un bowl grande.",
-      "Agrega los huevos y bate hasta integrar.",
-      "Incorpora la leche poco a poco, sin dejar de mezclar.",
-      "Vierte en un molde enmantequillado y hornea 40 minutos.",
-    ],
-    notes: "Agregar un poco más de chocolate la próxima vez. Queda mejor si reposa una noche antes de servir.",
-    createdAt: "2026-06-02",
-    updatedAt: "2026-06-02",
-  },
-  {
-    id: "r2",
-    title: "Ensalada César",
-    description: "Clásica, fresca y lista en minutos.",
-    image: IMG.cesar,
-    category: "ensaladas",
-    subcategory: "Frías",
-    prepTime: 15,
-    cookTime: 0,
-    difficulty: "Fácil",
-    servings: 2,
-    favorite: false,
-    tags: ["pollo", "rápida", "almuerzo"],
-    ingredients: [
-      { id: uid(), quantity: 1, unit: "", name: "Lechuga romana" },
-      { id: uid(), quantity: 1, unit: "", name: "Pechuga de pollo" },
-      { id: uid(), quantity: 40, unit: "g", name: "Queso parmesano" },
-      { id: uid(), quantity: 1, unit: "cup", name: "Crutones" },
-      { id: uid(), quantity: 3, unit: "tbsp", name: "Aderezo césar" },
-    ],
-    steps: [
-      "Lava y corta la lechuga en trozos grandes.",
-      "Cocina el pollo a la plancha y córtalo en tiras.",
-      "Mezcla la lechuga con el aderezo.",
-      "Agrega el pollo, los crutones y el parmesano.",
-    ],
-    notes: "",
-    createdAt: "2026-05-28",
-    updatedAt: "2026-05-28",
-  },
-  {
-    id: "r3",
-    title: "Pan de masa madre",
-    description: "Corteza crujiente y miga aireada, con fermentación lenta.",
-    image: IMG.masamadre,
-    category: "panes",
-    subcategory: "Fermentados",
-    prepTime: 30,
-    cookTime: 45,
-    difficulty: "Difícil",
-    servings: 8,
-    favorite: true,
-    tags: ["masa madre", "fin de semana"],
-    ingredients: [
-      { id: uid(), quantity: 500, unit: "g", name: "Harina de fuerza" },
-      { id: uid(), quantity: 350, unit: "ml", name: "Agua" },
-      { id: uid(), quantity: 100, unit: "g", name: "Masa madre activa" },
-      { id: uid(), quantity: 10, unit: "g", name: "Sal" },
-    ],
-    steps: [
-      "Mezcla la harina con el agua y deja reposar 30 minutos (autólisis).",
-      "Incorpora la masa madre y la sal, amasa suavemente.",
-      "Realiza pliegues cada 30 minutos durante 3 horas.",
-      "Forma la hogaza y deja fermentar en frío toda la noche.",
-      "Hornea a 230 °C con vapor durante 45 minutos.",
-    ],
-    notes: "La fermentación en frío mejora mucho el sabor. No apurar los pliegues.",
-    createdAt: "2026-04-10",
-    updatedAt: "2026-04-10",
-  },
-  {
-    id: "r4",
-    title: "Sopa de zapallo",
-    description: "Cremosa, reconfortante y lista en menos de una hora.",
-    image: IMG.zapallo,
-    category: "sopas",
-    subcategory: "Cremas",
-    prepTime: 15,
-    cookTime: 30,
-    difficulty: "Fácil",
-    servings: 4,
-    favorite: false,
-    tags: ["invierno", "vegetariana"],
-    ingredients: [
-      { id: uid(), quantity: 1, unit: "kg", name: "Zapallo" },
-      { id: uid(), quantity: 1, unit: "", name: "Cebolla" },
-      { id: uid(), quantity: 1, unit: "l", name: "Caldo de verduras" },
-      { id: uid(), quantity: 100, unit: "ml", name: "Crema" },
-    ],
-    steps: [
-      "Sofríe la cebolla picada hasta que esté transparente.",
-      "Agrega el zapallo en cubos y el caldo.",
-      "Cocina 25 minutos hasta que el zapallo esté blando.",
-      "Licúa hasta obtener una crema suave y agrega la crema.",
-    ],
-    notes: "",
-    createdAt: "2026-06-08",
-    updatedAt: "2026-06-08",
-  },
-  {
-    id: "r5",
-    title: "Tallarines a la boloñesa",
-    description: "Salsa de carne lenta y sabrosa sobre pasta al dente.",
-    image: IMG.bolonesa,
-    category: "comidas",
-    subcategory: "Pastas",
-    prepTime: 20,
-    cookTime: 45,
-    difficulty: "Media",
-    servings: 4,
-    favorite: true,
-    tags: ["carne", "domingo"],
-    ingredients: [
-      { id: uid(), quantity: 400, unit: "g", name: "Tallarines" },
-      { id: uid(), quantity: 300, unit: "g", name: "Carne molida" },
-      { id: uid(), quantity: 400, unit: "g", name: "Tomate triturado" },
-      { id: uid(), quantity: 1, unit: "", name: "Cebolla" },
-      { id: uid(), quantity: 2, unit: "", name: "Dientes de ajo" },
-    ],
-    steps: [
-      "Sofríe la cebolla y el ajo picados finamente.",
-      "Agrega la carne molida y dora bien.",
-      "Incorpora el tomate triturado y cocina a fuego bajo 30 minutos.",
-      "Cocina los tallarines al dente y sirve con la salsa encima.",
-    ],
-    notes: "Mejor al día siguiente, cuando los sabores se asientan.",
-    createdAt: "2026-05-15",
-    updatedAt: "2026-05-20",
-  },
-  {
-    id: "r6",
-    title: "Brownies",
-    description: "Bordes crujientes, centro fudoso.",
-    image: IMG.brownies,
-    category: "postres",
-    subcategory: "Chocolate",
-    prepTime: 15,
-    cookTime: 25,
-    difficulty: "Fácil",
-    servings: 12,
-    favorite: false,
-    tags: ["chocolate", "para compartir"],
-    ingredients: [
-      { id: uid(), quantity: 200, unit: "g", name: "Chocolate semi amargo" },
-      { id: uid(), quantity: 150, unit: "g", name: "Mantequilla" },
-      { id: uid(), quantity: 3, unit: "", name: "Huevos" },
-      { id: uid(), quantity: 180, unit: "g", name: "Azúcar" },
-      { id: uid(), quantity: 100, unit: "g", name: "Harina" },
-    ],
-    steps: [
-      "Derrite el chocolate con la mantequilla a baño maría.",
-      "Bate los huevos con el azúcar hasta espumar.",
-      "Une ambas mezclas y agrega la harina tamizada.",
-      "Hornea a 180 °C durante 25 minutos, sin pasarse de cocción.",
-    ],
-    notes: "",
-    createdAt: "2026-06-12",
-    updatedAt: "2026-06-12",
-  },
-  {
-    id: "r7",
-    title: "Limonada de jengibre",
-    description: "Refrescante, con un toque picante de jengibre.",
-    image: IMG.limonada,
-    category: "bebidas",
-    subcategory: "Frías",
-    prepTime: 10,
-    cookTime: 0,
-    difficulty: "Fácil",
-    servings: 4,
-    favorite: false,
-    tags: ["verano", "sin alcohol"],
-    ingredients: [
-      { id: uid(), quantity: 6, unit: "", name: "Limones" },
-      { id: uid(), quantity: 30, unit: "g", name: "Jengibre fresco" },
-      { id: uid(), quantity: 60, unit: "g", name: "Azúcar" },
-      { id: uid(), quantity: 1, unit: "l", name: "Agua fría" },
-    ],
-    steps: [
-      "Exprime los limones y ralla el jengibre.",
-      "Mezcla el jugo, el jengibre y el azúcar en el agua.",
-      "Deja reposar 10 minutos en el refrigerador antes de servir.",
-    ],
-    notes: "",
-    createdAt: "2026-06-14",
-    updatedAt: "2026-06-14",
-  },
-  {
-    id: "r8",
-    title: "Panqueques",
-    description: "El desayuno de fin de semana de siempre.",
-    image: IMG.panqueques,
-    category: "desayunos",
-    subcategory: "Dulces",
-    prepTime: 10,
-    cookTime: 15,
-    difficulty: "Fácil",
-    servings: 4,
-    favorite: true,
-    tags: ["desayuno", "niños"],
-    ingredients: [
-      { id: uid(), quantity: 200, unit: "g", name: "Harina" },
-      { id: uid(), quantity: 300, unit: "ml", name: "Leche" },
-      { id: uid(), quantity: 2, unit: "", name: "Huevos" },
-      { id: uid(), quantity: 1, unit: "tbsp", name: "Azúcar" },
-    ],
-    steps: [
-      "Mezcla todos los ingredientes hasta obtener una masa sin grumos.",
-      "Calienta una sartén antiadherente a fuego medio.",
-      "Cocina cada panqueque 2 minutos por lado hasta dorar.",
-    ],
-    notes: "Quedan mejor con un poco de ralladura de limón en la masa.",
-    createdAt: "2026-06-15",
-    updatedAt: "2026-06-15",
-  },
-];
 
 /* ============================================================
    SMALL PRIMITIVES
@@ -781,7 +531,7 @@ function scaleQuantity(qty, baseServings, newServings) {
    RECIPE DETAIL
    ============================================================ */
 
-function RecipeDetail({ recipe, onBack, onToggleFavorite, onEdit, onDelete }) {
+function RecipeDetail({ recipe, onBack, onToggleFavorite, onEdit, onDelete, onDuplicate }) {
   const [servings, setServings] = useState(recipe.servings);
   const [checked, setChecked] = useState({});
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -834,6 +584,10 @@ function RecipeDetail({ recipe, onBack, onToggleFavorite, onEdit, onDelete }) {
           >
             <span style={{ fontSize: 16 }}>{recipe.favorite ? "♥" : "♡"}</span>
             Favorito
+          </button>
+          <button onClick={() => onDuplicate(recipe)} style={labeledActionBtn}>
+            <span style={{ fontSize: 15 }}>📋</span>
+            Duplicar
           </button>
           <button onClick={() => onEdit(recipe.id)} style={labeledActionBtn}>
             <span style={{ fontSize: 15 }}>✏️</span>
@@ -1067,20 +821,6 @@ const backBtnStyle = {
   cursor: "pointer",
 };
 
-const iconActionBtn = {
-  width: 38,
-  height: 38,
-  borderRadius: "50%",
-  border: `1px solid ${TOKENS.line}`,
-  background: TOKENS.paper,
-  fontSize: 14,
-  cursor: "pointer",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  color: TOKENS.ink,
-};
-
 const labeledActionBtn = {
   display: "flex",
   alignItems: "center",
@@ -1166,7 +906,6 @@ function ImageUploadField({ value, onChange, userId }) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Preview instantly while the real upload happens in the background
     const reader = new FileReader();
     reader.onload = () => onChange(reader.result);
     reader.readAsDataURL(file);
@@ -1306,7 +1045,6 @@ function RecipeForm({ initial, onCancel, onSave, userId }) {
         {isEdit ? "Editar receta" : "Nueva receta"}
       </h1>
 
-      {/* General info */}
       <FormSection title="Información general">
         <div style={{ display: "grid", gap: 16 }}>
           <div>
@@ -1380,7 +1118,6 @@ function RecipeForm({ initial, onCancel, onSave, userId }) {
         </div>
       </FormSection>
 
-      {/* Ingredients */}
       <FormSection title="Ingredientes">
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {draft.ingredients.map((ing) => (
@@ -1415,7 +1152,6 @@ function RecipeForm({ initial, onCancel, onSave, userId }) {
         </button>
       </FormSection>
 
-      {/* Steps */}
       <FormSection title="Pasos">
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {draft.steps.map((step, idx) => (
@@ -1448,7 +1184,6 @@ function RecipeForm({ initial, onCancel, onSave, userId }) {
         </button>
       </FormSection>
 
-      {/* Notes */}
       <FormSection title="Notas personales">
         <textarea
           style={{ ...inputStyle, minHeight: 80, resize: "vertical", fontFamily: "Inter, sans-serif" }}
@@ -2276,9 +2011,6 @@ function roundPrice(v) {
   return Math.ceil(v / step) * step;
 }
 
-// Weight and volume can be converted between their two common units;
-// everything else (tbsp, cup, ralladura, unidades...) has no safe
-// conversion, so purchase unit must match the recipe's unit exactly.
 function unitFamily(unit) {
   if (unit === "g" || unit === "kg") return "weight";
   if (unit === "ml" || unit === "l") return "volume";
@@ -2294,7 +2026,7 @@ function purchaseUnitOptions(recipeUnit) {
 
 function toBaseAmount(qty, unit) {
   if (unit === "kg" || unit === "l") return qty * 1000;
-  return qty; // g, ml, or any non-convertible unit stay as-is
+  return qty;
 }
 
 function CostosView({ recipes, onSaveCosting }) {
@@ -2365,9 +2097,6 @@ function CostosView({ recipes, onSaveCosting }) {
   );
 }
 
-// Ingredient cost fields (costQty/costUnit/costPrice) and the recipe's
-// costMargin live directly on the recipe in the database, so they persist
-// across reloads, devices and logins — not just in this browser session.
 function CostoCalculator({ recipe, onSave, onBack }) {
   const [ingredients, setIngredients] = useState(recipe.ingredients);
   const [margin, setMarginState] = useState(recipe.costMargin ?? 50);
@@ -2652,9 +2381,6 @@ function CategoriesView({ recipes, onSelectCategory }) {
 
 /* ============================================================
    AJUSTES / APARIENCIA
-   Guarda la preferencia en localStorage (por navegador) y la
-   aplica al instante vía atributos en <html>, que las variables
-   CSS de app/layout.js leen para repintar toda la app.
    ============================================================ */
 
 const APPEARANCE_KEY = "mi-recetario-appearance";
@@ -2678,9 +2404,6 @@ function applyAppearance(appearance) {
   localStorage.setItem(APPEARANCE_KEY, JSON.stringify(appearance));
 }
 
-// Called once we know who's logged in: the account's saved preferences
-// (from Supabase) are the source of truth and override whatever this
-// browser had cached, so switching devices shows the same look.
 function applySyncedAppearance(preferences) {
   if (!preferences || Object.keys(preferences).length === 0) return;
   applyAppearance({ ...loadAppearance(), ...preferences });
@@ -2731,9 +2454,7 @@ function SettingsView({ user, onUpdateName }) {
       isFirstRender.current = false;
       return;
     }
-    updateProfilePreferences(user.id, appearance).catch(() => {
-      // best-effort: the change is already applied locally either way
-    });
+    updateProfilePreferences(user.id, appearance).catch(() => {});
   }, [appearance]);
 
   const update = (patch) => setAppearance((a) => ({ ...a, ...patch }));
@@ -2998,12 +2719,10 @@ function AdminPanel() {
   const [error, setError] = useState("");
   const [editingUserId, setEditingUserId] = useState(null);
 
-  // Modal para cambiar contraseña
   const [passUser, setPassUser] = useState(null);
   const [newPassword, setNewPassword] = useState("");
   const [passMsg, setPassMsg] = useState("");
 
-  // Crear usuario
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newUserEmail, setNewUserEmail] = useState("");
   const [newUserPassword, setNewUserPassword] = useState("");
@@ -3066,7 +2785,6 @@ function AdminPanel() {
     }
   };
 
-// Eliminar usuario de Auth y de Profiles mediante la API Route
   const handleDeleteUser = async (userId, userName) => {
     if (!window.confirm(`¿Eliminar definitivamente al usuario "${userName}" y liberar su correo?`)) return;
     try {
@@ -3089,7 +2807,6 @@ function AdminPanel() {
     }
   };
 
-  // Cambiar contraseña mediante la API Route
   const handleUpdatePassword = async (e) => {
     e.preventDefault();
     if (!newPassword || newPassword.length < 6) {
@@ -3185,7 +2902,6 @@ function AdminPanel() {
         </div>
       )}
 
-      {/* MODAL / FORMULARIO PARA CAMBIAR CONTRASEÑA */}
       {passUser && (
         <form onSubmit={handleUpdatePassword} style={{ background: TOKENS.paper, border: `1px solid ${TOKENS.line}`, borderRadius: 18, padding: 22, marginBottom: 24, display: "grid", gap: 12 }}>
           <h3 style={{ ...sectionHeading, fontSize: 16, margin: 0 }}>Cambiar contraseña para: {passUser.name}</h3>
@@ -3432,6 +3148,19 @@ export default function App() {
     setView("create");
   };
 
+  const handleDuplicate = async (recipe) => {
+    try {
+      const newRecipe = await duplicateRecipe(recipe);
+      setRecipes((rs) => [newRecipe, ...rs]);
+      showToast("Receta duplicada ✓");
+      logMovement("duplicó la receta", recipe.title);
+      setSelectedId(newRecipe.id);
+      setView("detail");
+    } catch (err) {
+      showToast("Error al duplicar: " + err.message);
+    }
+  };
+
   const handleSaveCosting = async (recipeId, ingredients, costMargin) => {
     const updated = await saveCosting(recipeId, ingredients, costMargin);
     setRecipes((rs) => rs.map((r) => (r.id === recipeId ? updated : r)));
@@ -3543,6 +3272,7 @@ export default function App() {
         onToggleFavorite={toggleFavorite}
         onEdit={goEdit}
         onDelete={deleteRecipe}
+        onDuplicate={handleDuplicate}
       />
     );
   } else if (view === "create") {
@@ -3594,8 +3324,4 @@ export default function App() {
       <Toast show={toast.show} message={toast.message} />
     </div>
   );
-}
-
-function todayStr() {
-  return new Date().toISOString().slice(0, 10);
 }
