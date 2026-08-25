@@ -233,7 +233,7 @@ function Toast({ message, show }) {
         fontSize: 14,
         fontWeight: 500,
         boxShadow: "0 8px 24px rgba(44,36,29,0.25)",
-        zIndex: 200,
+        zIndex: 300,
         transition: "opacity 0.25s ease, transform 0.25s ease",
         whiteSpace: "nowrap",
       }}
@@ -528,7 +528,7 @@ function scaleQuantity(qty, baseServings, newServings) {
 }
 
 /* ============================================================
-   MODO COCINA (Vista guiada / Karaoke optimizada para móvil)
+   MODO COCINA (Vista guiada / Karaoke optimizada)
    ============================================================ */
 function CookingModeModal({ recipe, onClose }) {
   const [currentStep, setCurrentStep] = useState(0);
@@ -536,12 +536,15 @@ function CookingModeModal({ recipe, onClose }) {
   const [seconds, setSeconds] = useState(15);
   const [checkedIngs, setCheckedIngs] = useState({});
 
+  const totalSteps = recipe.steps ? recipe.steps.length : 0;
+
+  // Lógica del temporizador Karaoke corregida
   useEffect(() => {
     let timer = null;
-    if (isPlaying) {
+    if (isPlaying && totalSteps > 0) {
       timer = setInterval(() => {
         setCurrentStep((prev) => {
-          if (prev < recipe.steps.length - 1) {
+          if (prev < totalSteps - 1) {
             return prev + 1;
           } else {
             setIsPlaying(false);
@@ -553,9 +556,19 @@ function CookingModeModal({ recipe, onClose }) {
     return () => {
       if (timer) clearInterval(timer);
     };
-  }, [isPlaying, seconds, recipe.steps.length]);
+  }, [isPlaying, seconds, totalSteps]);
 
-  const totalSteps = recipe.steps.length;
+  const handlePrev = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCurrentStep((prev) => Math.max(0, prev - 1));
+  };
+
+  const handleNext = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCurrentStep((prev) => Math.min(totalSteps - 1, prev + 1));
+  };
 
   return (
     <div
@@ -564,7 +577,7 @@ function CookingModeModal({ recipe, onClose }) {
         inset: 0,
         background: "#12100E",
         color: "#FDFBF7",
-        zIndex: 200,
+        zIndex: 500,
         display: "flex",
         flexDirection: "column",
         padding: "16px 18px",
@@ -608,13 +621,13 @@ function CookingModeModal({ recipe, onClose }) {
           style={{
             height: "100%",
             background: TOKENS.clay,
-            width: `${((currentStep + 1) / totalSteps) * 100}%`,
+            width: totalSteps > 0 ? `${((currentStep + 1) / totalSteps) * 100}%` : "0%",
             transition: "width 0.3s ease",
           }}
         />
       </div>
 
-      {/* 3. Tarjeta del Paso Actual (Arriba de todo) */}
+      {/* 3. Tarjeta del Paso Actual */}
       <div
         style={{
           background: "rgba(255,255,255,0.06)",
@@ -639,11 +652,11 @@ function CookingModeModal({ recipe, onClose }) {
             color: "#FFF",
           }}
         >
-          {recipe.steps[currentStep] || "Sin instrucción"}
+          {recipe.steps && recipe.steps[currentStep] ? recipe.steps[currentStep] : "Sin instrucción"}
         </div>
       </div>
 
-      {/* 4. Controles (Flechas de navegación y Karaoke justo debajo del paso) */}
+      {/* 4. Controles (Navegación y Auto-avance) */}
       <div
         style={{
           display: "flex",
@@ -655,38 +668,41 @@ function CookingModeModal({ recipe, onClose }) {
           marginBottom: 20,
         }}
       >
-        {/* Flechas Anterior / Siguiente principales */}
+        {/* Flechas de cambio de paso directo */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <button
-            disabled={currentStep === 0}
-            onClick={() => setCurrentStep((prev) => Math.max(0, prev - 1))}
+            type="button"
+            onClick={handlePrev}
             style={{
-              background: "rgba(255,255,255,0.12)",
+              background: currentStep === 0 ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.15)",
               color: "#fff",
-              border: "none",
+              border: "1px solid rgba(255,255,255,0.1)",
               borderRadius: 12,
-              padding: "12px",
+              padding: "14px",
               fontSize: 15,
               fontWeight: 600,
-              cursor: currentStep === 0 ? "not-allowed" : "pointer",
+              cursor: currentStep === 0 ? "default" : "pointer",
               opacity: currentStep === 0 ? 0.3 : 1,
+              touchAction: "manipulation",
             }}
           >
             ← Anterior
           </button>
+
           <button
-            disabled={currentStep === totalSteps - 1}
-            onClick={() => setCurrentStep((prev) => Math.min(totalSteps - 1, prev + 1))}
+            type="button"
+            onClick={handleNext}
             style={{
-              background: TOKENS.clay,
+              background: currentStep === totalSteps - 1 ? "rgba(255,255,255,0.05)" : TOKENS.clay,
               color: "#fff",
               border: "none",
               borderRadius: 12,
-              padding: "12px",
+              padding: "14px",
               fontSize: 15,
               fontWeight: 700,
-              cursor: currentStep === totalSteps - 1 ? "not-allowed" : "pointer",
+              cursor: currentStep === totalSteps - 1 ? "default" : "pointer",
               opacity: currentStep === totalSteps - 1 ? 0.3 : 1,
+              touchAction: "manipulation",
             }}
           >
             Siguiente →
@@ -694,50 +710,53 @@ function CookingModeModal({ recipe, onClose }) {
         </div>
 
         {/* Módulo Karaoke Auto-Avance */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, pt: 4, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, paddingTop: 6, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
           <button
+            type="button"
             onClick={() => setIsPlaying(!isPlaying)}
             style={{
               background: isPlaying ? "#E05252" : TOKENS.olive,
               color: "#fff",
               border: "none",
               borderRadius: 999,
-              padding: "8px 16px",
+              padding: "9px 18px",
               fontSize: 13,
               fontWeight: 700,
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
               gap: 6,
+              touchAction: "manipulation",
             }}
           >
-            {isPlaying ? "⏸ Pausar" : "▶️ Auto-avance (Karaoke)"}
+            {isPlaying ? "⏸ Pausar Karaoke" : "▶️ Iniciar Karaoke"}
           </button>
           
           <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", display: "flex", alignItems: "center", gap: 6 }}>
-            <span>c/</span>
+            <span>cambiar c/</span>
             <select
               value={seconds}
               onChange={(e) => setSeconds(Number(e.target.value))}
               style={{
-                background: "rgba(255,255,255,0.12)",
+                background: "rgba(255,255,255,0.15)",
                 color: "#fff",
-                border: "none",
+                border: "1px solid rgba(255,255,255,0.2)",
                 borderRadius: 8,
-                padding: "4px 8px",
-                fontSize: 12,
+                padding: "6px 10px",
+                fontSize: 13,
+                outline: "none",
               }}
             >
-              <option value={10} style={{ color: "#000" }}>10s</option>
-              <option value={15} style={{ color: "#000" }}>15s</option>
-              <option value={20} style={{ color: "#000" }}>20s</option>
-              <option value={30} style={{ color: "#000" }}>30s</option>
+              <option value={10} style={{ color: "#000" }}>10 seg</option>
+              <option value={15} style={{ color: "#000" }}>15 seg</option>
+              <option value={20} style={{ color: "#000" }}>20 seg</option>
+              <option value={30} style={{ color: "#000" }}>30 seg</option>
             </select>
           </div>
         </div>
       </div>
 
-      {/* 5. Checklist de Ingredientes (Al final) */}
+      {/* 5. Checklist de Ingredientes */}
       <div
         style={{
           background: "rgba(255,255,255,0.03)",
@@ -747,10 +766,10 @@ function CookingModeModal({ recipe, onClose }) {
         }}
       >
         <div style={{ fontSize: 13.5, fontWeight: 700, marginBottom: 10, color: TOKENS.gold }}>
-          📝 Checklist de Ingredientes (Toca para tachar lo usado)
+          📝 Checklist de Ingredientes (Toca para tachar)
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {recipe.ingredients.map((ing) => {
+          {recipe.ingredients && recipe.ingredients.map((ing) => {
             const isChecked = !!checkedIngs[ing.id];
             return (
               <label
@@ -770,7 +789,7 @@ function CookingModeModal({ recipe, onClose }) {
                   type="checkbox"
                   checked={isChecked}
                   onChange={() => setCheckedIngs((prev) => ({ ...prev, [ing.id]: !prev[ing.id] }))}
-                  style={{ width: 16, height: 16 }}
+                  style={{ width: 18, height: 18, cursor: "pointer" }}
                 />
                 <span>
                   <strong>{ing.quantity} {ing.unit}</strong> {ing.name}
@@ -3000,7 +3019,7 @@ function AdminPanel() {
   const [creating, setCreating] = useState(false);
   const [createMsg, setCreateMsg] = useState({ text: "", isError: false });
 
-  const loadData = async () => {
+const loadData = async () => {
     try {
       const [u, log] = await Promise.all([fetchAllProfiles(), fetchAuditLog()]);
       setUsers(u);
